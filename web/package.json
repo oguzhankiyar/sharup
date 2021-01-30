@@ -1,0 +1,10 @@
+{
+  "name": "sharup-web",
+  "version": "1.0.0",
+  "description": "Sharup Web",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Oguzhan Kiyar",
+  "license": "MIT"
+}

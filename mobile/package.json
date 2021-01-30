@@ -1,0 +1,10 @@
+{
+  "name": "sharup-mobile",
+  "version": "1.0.0",
+  "description": "Sharup Mobile",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Oguzhan Kiyar",
+  "license": "MIT"
+}

@@ -1,0 +1,12 @@
+{
+    "name": "sharup",
+    "version": "1.0.0",
+    "description": "Sharup",
+    "scripts": {
+        "start:server": "cd ./server & npm run start",
+        "start:web": "cd ./web & npm run start",
+        "start:mobile": "cd ./mobile & npm run start"
+    },
+    "author": "Oguzhan Kiyar",
+    "license": "MIT"
+}
