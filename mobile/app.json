@@ -1,0 +1,12 @@
+{
+  "name": "Sharup",
+  "displayName": "Sharup",
+  "expo": {
+    "name": "Sharup",
+    "slug": "Sharup",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}

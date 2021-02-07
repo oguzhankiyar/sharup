@@ -1,0 +1,54 @@
+.App {
+    font-size: 20px;
+    text-align: center;
+    margin-top: 25px;
+}
+
+pre {
+    font-size: 14px;
+    text-align: left;
+    margin: auto;
+    width: 200px;
+}
+
+svg {
+    margin: 0 30%;
+}
+
+input {
+  border: none;
+  outline: none;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 2.5px #363636;
+  background-color: #d5d5d5;
+  color: #363636;
+  padding: 7.5px 0 7.5px 15px;
+  font-size: 20px;
+  font-family: Tahoma;
+  letter-spacing: 15px;
+  text-align: center;
+  width: 224px;
+  margin: 0 auto 25px auto;
+}
+
+button {
+  border-radius: 3px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  display: block;
+  padding: 7.5px 10px 5px 7.5px;
+  font-size: 14px;
+  text-transform: uppercase;
+  color: white;
+  background-color: rgb(89, 77, 247);
+  opacity: .75;
+  width: 236px;
+  margin: 0 auto 25px auto;
+}
+
+button:hover {
+  opacity: 1;
+}

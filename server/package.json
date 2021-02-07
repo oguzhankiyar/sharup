@@ -6,5 +6,8 @@
     "start": "node index.js"
   },
   "author": "Oguzhan Kiyar",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "websocket": "^1.0.33"
+  }
 }
