@@ -1,22 +1,24 @@
 export class Connector {
 
-    onFileReceived = () => { };
-    onFileSent = () => { };
     onConnected = () => { };
+    onPeerChanged = () => { };
+    onFileChanged = () => { };
 
     isConnected = false;
-    code = null;
     peerConnection = null;
     socketConnection = null;
-    sentFiles = [];
-    receivedFiles = [];
+    code = null;
+    name = null;
+    files = [];
+    peers = [];
 
     MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE' };
     MAXIMUM_MESSAGE_SIZE = 65535;
     END_OF_FILE_MESSAGE = 'EOF';
 
-    startConnection = async (code) => {
+    startConnection = async (code, name) => {
         this.code = code;
+        this.name = name;
 
         try {
             await this.createSocketConnection();
@@ -56,6 +58,7 @@ export class Connector {
             const { channel } = event;
             channel.binaryType = 'arraybuffer';
 
+            let metadata = null;
             const receivedBuffers = [];
             channel.onmessage = async (event) => {
                 const { data } = event;
@@ -63,18 +66,31 @@ export class Connector {
                     if (data !== this.END_OF_FILE_MESSAGE) {
                         receivedBuffers.push(data);
                     } else {
-                        const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
-                            const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
-                            tmp.set(new Uint8Array(acc), 0);
-                            tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
-                            return tmp;
-                        }, new Uint8Array());
-                        const blob = new Blob([arrayBuffer]);
-                        this.downloadFile(blob, channel.label);
-                        this.receivedFiles.push(channel.label);
-                        if (this.onFileReceived)
-                            this.onFileReceived();
-                        channel.close();
+                        if (!!metadata) {
+                            const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
+                                const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
+                                tmp.set(new Uint8Array(acc), 0);
+                                tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
+                                return tmp;
+                            }, new Uint8Array());
+                            const blob = new Blob([arrayBuffer]);
+                            this.downloadFile(blob, channel.label);
+                            this.files.push({ name: channel.label, owner: metadata.owner, time: metadata.time });
+                            if (this.onFileChanged)
+                                this.onFileChanged();
+                            channel.close();
+                        } else {
+                            const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
+                                const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
+                                tmp.set(new Uint8Array(acc), 0);
+                                tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
+                                return tmp;
+                            }, new Uint8Array());
+
+                            metadata = JSON.parse(new TextDecoder("utf-8").decode(arrayBuffer));
+
+                            receivedBuffers.splice(0, receivedBuffers.length);
+                        }
                     }
                 } catch (err) {
                     console.log('File transfer failed', err);
@@ -87,7 +103,7 @@ export class Connector {
 
     createSocketConnection = async () => {
         const promise = new Promise((resolve, reject) => {
-            const socketConnection = new WebSocket('ws://192.168.1.44:2805');
+            const socketConnection = new WebSocket('ws://127.0.0.1:2805');
 
             socketConnection.onmessage = async (message) => {
                 const data = JSON.parse(message.data);
@@ -96,8 +112,12 @@ export class Connector {
                     return;
                 }
 
-                const { message_type, content } = data;
+                const { message_type, content, name } = data;
                 try {
+                    if (!this.peers.some(x => x.name === name))
+                        this.peers.push({ name });
+                    if (this.onPeerChanged)
+                        this.onPeerChanged();
                     if (message_type === this.MESSAGE_TYPE.CANDIDATE && content) {
                         await this.peerConnection.addIceCandidate(content);
                     } else if (message_type === this.MESSAGE_TYPE.SDP) {
@@ -139,6 +159,7 @@ export class Connector {
             this.socketConnection.send(JSON.stringify({
                 ...message,
                 code: this.code,
+                name: this.name
             }));
         }
     }
@@ -155,11 +176,19 @@ export class Connector {
 
     shareFile = (file) => {
         if (file) {
+            const time = new Date().getTime();
             const channelLabel = file.name;
             const channel = this.peerConnection.createDataChannel(channelLabel);
             channel.binaryType = 'arraybuffer';
 
             channel.onopen = async () => {
+                const metadata = { owner: this.name, time: time };
+                const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
+                for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+                    channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+                }
+                channel.send(this.END_OF_FILE_MESSAGE);
+
                 const arrayBuffer = await file.arrayBuffer();
                 for (let i = 0; i < arrayBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
                     channel.send(arrayBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
@@ -168,20 +197,20 @@ export class Connector {
             };
 
             channel.onclose = () => {
-                this.sentFiles.push(channelLabel);
-                if (this.onFileSent)
-                    this.onFileSent();
+                this.files.push({ name: channelLabel, owner: this.name, time: time });
+                if (this.onFileChanged)
+                    this.onFileChanged();
             };
         }
     };
 
     downloadFile = (blob, fileName) => {
-        const a = document.createElement('a');
-        const url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove()
+        // const a = document.createElement('a');
+        // const url = window.URL.createObjectURL(blob);
+        // a.href = url;
+        // a.download = fileName;
+        // a.click();
+        // window.URL.revokeObjectURL(url);
+        // a.remove()
     };
 }

@@ -1,0 +1,8 @@
+.Header {
+    position: fixed;
+    width: 100%;
+    background-color: #9b7b1b;
+    padding: 12.5px 20px;
+    box-shadow: 0 5px 5px #252525;
+    z-index: 1000;
+}

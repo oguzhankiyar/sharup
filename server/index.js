@@ -1,7 +1,5 @@
 console.log('Sharup Server');
 
-const names = require('./names');
-
 const http = require('http');
 const server = require('websocket').server;
 
@@ -21,24 +19,23 @@ const peersByCode = {};
 wsServer.on('request', request => {
   const connection = request.accept();
   const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  const name = names.list[Math.floor(Math.random() * names.list.length)];
 
   connection.on('message', message => {
-    const data = JSON.parse(message.utf8Data);
-    if (!peersByCode[data.code]) {
-      peersByCode[data.code] = [{ connection, id, name }];
-    } else if (!peersByCode[data.code].find(peer => peer.id === id)) {
-      peersByCode[data.code].push({ connection, id, name });
+    const { code, name, content, message_type } = JSON.parse(message.utf8Data);
+    if (!peersByCode[code]) {
+      peersByCode[code] = [{ connection, id, name }];
+    } else if (!peersByCode[code].find(peer => peer.id === id)) {
+      peersByCode[code].push({ connection, id, name });
     }
 
     const reply = JSON.stringify({
-      message_type: data.message_type,
-      content: data.content,
-      code: data.code,
+      message_type: message_type,
+      content: content,
+      code: code,
       name: name
     });
 
-    peersByCode[data.code]
+    peersByCode[code]
       .filter(peer => peer.id !== id)
       .forEach(peer => peer.connection.send(reply));
   });
