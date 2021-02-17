@@ -13,20 +13,14 @@ export default class App extends Component {
     connector = null;
 
     startConnection = async () => {
-        if (!this.state.code || this.state.code.length !== 8) {
-            return;
-        }
-
-        if (!this.state.name) {
-            return;
-        }
-
         this.connector = new Connector();
 
         this.connector.onConnected = () => {
             this.setState({
                 ...this.state,
-                isConnected: this.connector.isConnected
+                isConnected: this.connector.isConnected,
+                code: this.connector.code,
+                name: this.connector.name
             });
         }
 
@@ -55,20 +49,6 @@ export default class App extends Component {
         this.connector.shareFile(file);
     };
 
-    identify = () => {
-        var result = '';
-        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        var charactersLength = characters.length;
-        for (var i = 0; i < 8; i++) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        }
-
-        result = result.toUpperCase();
-
-        this.setState({ ...this.state, code: result });
-        location.hash = result;
-    };
-
     onCodeChange = (event) => {
         const { value } = event.target;
         this.setState({ ...this.state, code: value.toUpperCase() });
@@ -84,10 +64,12 @@ export default class App extends Component {
         if (location.hash) {
             const hash = location.hash.substring(1).toUpperCase();
             if (hash.length === 8) {
-                this.setState({ ...this.state, code: hash });
+                this.setState({ ...this.state, code: hash }, () => {
+                    this.startConnection();
+                });
             }
         } else {
-            this.identify();
+            this.startConnection();
         }
     };
 
@@ -155,11 +137,11 @@ export default class App extends Component {
                                     <div className="file" key={index}>
                                         <div className="name">{value.name}</div>
                                         <div className="info">by <div className="owner">{value.owner}</div> at <div className="date">{
-                                            ("0" + new Date(value.time).getDate()).slice(-2)   + "." + 
-                                            ("0" + (new Date(value.time).getMonth() + 1)).slice(-2) + "." + 
+                                            ("0" + new Date(value.time).getDate()).slice(-2) + "." +
+                                            ("0" + (new Date(value.time).getMonth() + 1)).slice(-2) + "." +
                                             ("000" + new Date(value.time).getFullYear()).slice(-4) + " " +
-                                            ("0" + new Date(value.time).getHours()).slice(-2)   + ":" + 
-                                            ("0" + new Date(value.time).getMinutes()).slice(-2) + ":" + 
+                                            ("0" + new Date(value.time).getHours()).slice(-2) + ":" +
+                                            ("0" + new Date(value.time).getMinutes()).slice(-2) + ":" +
                                             ("0" + new Date(value.time).getSeconds()).slice(-2)
                                         }</div></div>
                                     </div>

@@ -51,10 +51,6 @@ input.code {
   text-transform: uppercase;
 }
 
-input.name {
-  text-transform: uppercase;
-}
-
 input:disabled {
   opacity: 0.75;
 }

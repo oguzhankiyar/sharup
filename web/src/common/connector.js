@@ -12,7 +12,7 @@ export class Connector {
     files = [];
     peers = [];
 
-    MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE' };
+    MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE', JOIN_REQ: 'JOIN_REQ', JOIN_RES: 'JOIN_RES' };
     MAXIMUM_MESSAGE_SIZE = 65535;
     END_OF_FILE_MESSAGE = 'EOF';
 
@@ -114,11 +114,18 @@ export class Connector {
 
                 const { message_type, content, name } = data;
                 try {
-                    if (!this.peers.some(x => x.name === name))
+                    if (!this.peers.some(x => x.name === name) && name)
                         this.peers.push({ name });
                     if (this.onPeerChanged)
                         this.onPeerChanged();
-                    if (message_type === this.MESSAGE_TYPE.CANDIDATE && content) {
+                    if (message_type === this.MESSAGE_TYPE.JOIN_RES && content) {
+                        const { id, code, name } = content;
+                        this.code = code;
+                        this.name = name;
+                        if (this.onConnected)
+                            this.onConnected();
+                        console.log({ id, code, name });
+                    } else if (message_type === this.MESSAGE_TYPE.CANDIDATE && content) {
                         await this.peerConnection.addIceCandidate(content);
                     } else if (message_type === this.MESSAGE_TYPE.SDP) {
                         if (content.type === 'offer') {
@@ -142,6 +149,10 @@ export class Connector {
 
             socketConnection.onopen = () => {
                 resolve();
+                this.sendMessage({
+                    message_type: this.MESSAGE_TYPE.JOIN_REQ,
+                    content: { }
+                })
             };
 
             socketConnection.onerror = () => {
@@ -155,13 +166,11 @@ export class Connector {
     }
 
     sendMessage = (message) => {
-        if (this.code) {
-            this.socketConnection.send(JSON.stringify({
-                ...message,
-                code: this.code,
-                name: this.name
-            }));
-        }
+        this.socketConnection.send(JSON.stringify({
+            ...message,
+            code: this.code,
+            name: this.name
+        }));
     }
 
     createAndSendOffer = async () => {
