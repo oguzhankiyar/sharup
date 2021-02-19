@@ -7,7 +7,7 @@ services:
     restart: always
     build: .
     ports:
-      - '3090:2805'
+      - '3090:80'
     environment:
       - PORT=80
     networks:
