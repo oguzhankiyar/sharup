@@ -7,11 +7,13 @@ services:
     restart: always
     build: .
     ports:
-      - '3091:3000'
+      - '3091:80'
+    environment:
+      - PORT=80
     networks:
-      - nginxproxy_network
+      - nginx
 
 networks:
-  nginxproxy_network:
+  nginx:
     external:
-      name: nginxproxy_network
+      name: nginx

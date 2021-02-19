@@ -5,7 +5,7 @@ const names = require('./names');
 const http = require('http');
 const server = require('websocket').server;
 
-const LISTEN_PORT = 2805;
+const LISTEN_PORT = process.env.PORT || 2805;
 const MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE', JOIN_REQ: 'JOIN_REQ', JOIN_RES: 'JOIN_RES' };
 
 const httpServer = http.createServer(() => { });

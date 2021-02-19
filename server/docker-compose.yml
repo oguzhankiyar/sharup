@@ -8,10 +8,12 @@ services:
     build: .
     ports:
       - '3090:2805'
+    environment:
+      - PORT=80
     networks:
-      - nginxproxy_network
+      - nginx
 
 networks:
-  nginxproxy_network:
+  nginx:
     external:
-      name: nginxproxy_network
+      name: nginx
