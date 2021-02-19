@@ -1,3 +1,5 @@
+import { io } from 'socket.io-client';
+
 export class Connector {
 
     onConnected = () => { };
@@ -103,10 +105,10 @@ export class Connector {
 
     createSocketConnection = async () => {
         const promise = new Promise((resolve, reject) => {
-            const socketConnection = new WebSocket('ws://sharup.kiyar.io/api');
+            const socketConnection = io('sharup.kiyar.io/api');
 
-            socketConnection.onmessage = async (message) => {
-                const data = JSON.parse(message.data);
+            socketConnection.on('message', async (message) => {
+                const data = JSON.parse(message);
 
                 if (!data) {
                     return;
@@ -124,7 +126,6 @@ export class Connector {
                         this.name = name;
                         if (this.onConnected)
                             this.onConnected();
-                        console.log({ id, code, name });
                     } else if (message_type === this.MESSAGE_TYPE.CANDIDATE && content) {
                         await this.peerConnection.addIceCandidate(content);
                     } else if (message_type === this.MESSAGE_TYPE.SDP) {
@@ -145,19 +146,25 @@ export class Connector {
                 } catch (err) {
                     console.error(err);
                 }
-            };
+            });
 
-            socketConnection.onopen = () => {
+            socketConnection.on('connect', () => {
                 resolve();
                 this.sendMessage({
                     message_type: this.MESSAGE_TYPE.JOIN_REQ,
                     content: { }
                 })
-            };
+            });
 
-            socketConnection.onerror = () => {
+            socketConnection.on('disconnect', () => {
                 reject();
-            };
+            });
+            
+            socketConnection.on('connect_error', () => {
+                reject();
+            });
+
+            socketConnection.connect();
 
             this.socketConnection = socketConnection;
         });
@@ -166,7 +173,7 @@ export class Connector {
     }
 
     sendMessage = (message) => {
-        this.socketConnection.send(JSON.stringify({
+        this.socketConnection.emit('message', JSON.stringify({
             ...message,
             code: this.code,
             name: this.name

@@ -2,25 +2,29 @@ console.log('Sharup Server');
 
 const names = require('./names');
 
-const http = require('http');
-const server = require('websocket').server;
+var app = require('express')();
+var http = require('http').Server(app);
+var io = require('socket.io')(http, {
+  cors: {
+    origin: '*'
+  }
+});
+
+app.get('/', (req, res) => {
+  res.send({ status: 200 });
+});
 
 const LISTEN_PORT = process.env.PORT || 2805;
-const MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE', JOIN_REQ: 'JOIN_REQ', JOIN_RES: 'JOIN_RES' };
 
-const httpServer = http.createServer(() => { });
-httpServer.listen(LISTEN_PORT, () => {
+http.listen(LISTEN_PORT, () => {
   console.log('Server listening at port ' + LISTEN_PORT);
 });
 
-const wsServer = new server({
-  httpServer,
-});
+const MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE', JOIN_REQ: 'JOIN_REQ', JOIN_RES: 'JOIN_RES' };
 
 const peersByCode = {};
 
-wsServer.on('request', request => {
-  const connection = request.accept();
+io.on('connection', (socket) => {
   const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
   const join = (message) => {
@@ -54,9 +58,9 @@ wsServer.on('request', request => {
       } while (peersByCode[code].some(x => x.name === name));
     }
 
-    peersByCode[code].push({ connection, id, name });
+    peersByCode[code].push({ socket, id, name });
 
-    connection.send(JSON.stringify({
+    socket.emit('message', JSON.stringify({
       message_type: MESSAGE_TYPE.JOIN_RES,
       content: {
         id: id,
@@ -69,9 +73,9 @@ wsServer.on('request', request => {
   const sdp = (message) => {
     const { code, name, content, message_type } = message;
     if (!peersByCode[code]) {
-      peersByCode[code] = [{ connection, id, name }];
+      peersByCode[code] = [{ socket, id, name }];
     } else if (!peersByCode[code].find(peer => peer.id === id)) {
-      peersByCode[code].push({ connection, id, name });
+      peersByCode[code].push({ socket, id, name });
     }
 
     const reply = JSON.stringify({
@@ -83,15 +87,15 @@ wsServer.on('request', request => {
 
     peersByCode[code]
       .filter(peer => peer.id !== id)
-      .forEach(peer => peer.connection.send(reply));
+      .forEach(peer => peer.socket.emit('message', reply));
   };
 
   const candidate = (message) => {
     const { code, name, content, message_type } = message;
     if (!peersByCode[code]) {
-      peersByCode[code] = [{ connection, id, name }];
+      peersByCode[code] = [{ socket, id, name }];
     } else if (!peersByCode[code].find(peer => peer.id === id)) {
-      peersByCode[code].push({ connection, id, name });
+      peersByCode[code].push({ socket, id, name });
     }
 
     const reply = JSON.stringify({
@@ -103,7 +107,7 @@ wsServer.on('request', request => {
 
     peersByCode[code]
       .filter(peer => peer.id !== id)
-      .forEach(peer => peer.connection.send(reply));
+      .forEach(peer => peer.socket.emit('message', reply));
   };
 
   const actions = {
@@ -112,8 +116,8 @@ wsServer.on('request', request => {
     JOIN_REQ: join
   };
 
-  connection.on('message', message => {
-    const { code, name, content, message_type } = JSON.parse(message.utf8Data);
+  socket.on('message', message => {
+    const { code, name, content, message_type } = JSON.parse(message);
     const action = actions[message_type];
     if (action)
       action({ code, name, content, message_type });
