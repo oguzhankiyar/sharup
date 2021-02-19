@@ -1,0 +1,17 @@
+version: '3.5'
+
+services:
+  io_kiyar_sharup_server:
+    image: io_kiyar_sharup_server
+    container_name: io_kiyar_sharup_server
+    restart: always
+    build: .
+    ports:
+      - '3090:2805'
+    networks:
+      - nginxproxy_network
+
+networks:
+  nginxproxy_network:
+    external:
+      name: nginxproxy_network

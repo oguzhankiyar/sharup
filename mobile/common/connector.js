@@ -89,7 +89,7 @@ export class Connector {
 
     createSocketConnection = async () => {
         const promise = new Promise((resolve, reject) => {
-            const socketConnection = new WebSocket('ws://127.0.0.1:2805');
+            const socketConnection = new WebSocket('ws://sharup.kiyar.io/api');
 
             socketConnection.onmessage = async (message) => {
                 const data = JSON.parse(message.data);
