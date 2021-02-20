@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Sharup Web",
   "scripts": {
-    "start": "react-scripts start"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "serve": "serve -l 80 -s build"
   },
   "author": "Oguzhan Kiyar",
   "license": "MIT",
