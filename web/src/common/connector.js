@@ -105,7 +105,7 @@ export class Connector {
 
     createSocketConnection = async () => {
         const promise = new Promise((resolve, reject) => {
-            const socketConnection = io('sharup.kiyar.io/api');
+            const socketConnection = io('sharup-api.kiyar.io');
 
             socketConnection.on('message', async (message) => {
                 const data = JSON.parse(message);
