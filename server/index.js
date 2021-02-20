@@ -68,6 +68,22 @@ io.on('connection', (socket) => {
         name: name
       }
     }));
+
+    peersByCode[code]
+      .filter(peer => peer.id !== id)
+      .forEach(peer => {
+        peer.socket.emit('peer_connected', JSON.stringify({
+          id: id,
+          code: code,
+          name: name
+        }));
+
+        socket.emit('peer_connected', JSON.stringify({
+          id: peer.id,
+          code: code,
+          name: peer.name
+        }));
+      });
   };
 
   const sdp = (message) => {
@@ -116,10 +132,26 @@ io.on('connection', (socket) => {
     JOIN_REQ: join
   };
 
+  socket.on('disconnect', () => {
+    const code = Object.keys(peersByCode).filter(x => peersByCode[x].some(y => y.id === id))[0];
+    const peer = peersByCode[code].filter(x => x.id === id)[0];
+
+    peersByCode[code] = peersByCode[code].filter(x => x.id !== id);
+
+    peersByCode[code]
+      .forEach(x => x.socket.emit('peer_disconnected', JSON.stringify({
+        id: peer.id,
+        code: code,
+        name: peer.name
+      })));
+  });
+
   socket.on('message', message => {
     const { code, name, content, message_type } = JSON.parse(message);
     const action = actions[message_type];
     if (action)
       action({ code, name, content, message_type });
   });
+
+
 });

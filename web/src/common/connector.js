@@ -75,9 +75,7 @@ export class Connector {
                                 tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
                                 return tmp;
                             }, new Uint8Array());
-                            const blob = new Blob([arrayBuffer]);
-                            this.downloadFile(blob, channel.label);
-                            this.files.push({ name: channel.label, owner: metadata.owner, time: metadata.time });
+                            this.files.push({ name: channel.label, buffer: arrayBuffer, owner: metadata.owner, time: metadata.time });
                             if (this.onFileChanged)
                                 this.onFileChanged();
                             channel.close();
@@ -107,6 +105,48 @@ export class Connector {
         const promise = new Promise((resolve, reject) => {
             const socketConnection = io('sharup-api.kiyar.io');
 
+            socketConnection.on('peer_connected', async (message) => {
+                const data = JSON.parse(message);
+
+                if (!data) {
+                    return;
+                }
+
+                const { id, code, name } = data;
+
+                if (code !== this.code) {
+                    return;
+                }
+
+                if (!this.peers.some(x => x.name === name) && name) {
+                    this.peers.push({ name });
+                }
+
+                if (this.onPeerChanged) {
+                    this.onPeerChanged();
+                }
+            });
+            
+            socketConnection.on('peer_disconnected', async (message) => {
+                const data = JSON.parse(message);
+
+                if (!data) {
+                    return;
+                }
+
+                const { id, code, name } = data;
+
+                if (code !== this.code) {
+                    return;
+                }
+
+                this.peers = this.peers.filter(x => x.name !== name);
+
+                if (this.onPeerChanged) {
+                    this.onPeerChanged();
+                }
+            });
+
             socketConnection.on('message', async (message) => {
                 const data = JSON.parse(message);
 
@@ -116,10 +156,6 @@ export class Connector {
 
                 const { message_type, content, name } = data;
                 try {
-                    if (!this.peers.some(x => x.name === name) && name)
-                        this.peers.push({ name });
-                    if (this.onPeerChanged)
-                        this.onPeerChanged();
                     if (message_type === this.MESSAGE_TYPE.JOIN_RES && content) {
                         const { id, code, name } = content;
                         this.code = code;
@@ -152,14 +188,14 @@ export class Connector {
                 resolve();
                 this.sendMessage({
                     message_type: this.MESSAGE_TYPE.JOIN_REQ,
-                    content: { }
+                    content: {}
                 })
             });
 
             socketConnection.on('disconnect', () => {
                 reject();
             });
-            
+
             socketConnection.on('connect_error', () => {
                 reject();
             });
@@ -190,12 +226,14 @@ export class Connector {
         });
     }
 
-    shareFile = (file) => {
+    shareFile = async (file) => {
         if (file) {
             const time = new Date().getTime();
             const channelLabel = file.name;
             const channel = this.peerConnection.createDataChannel(channelLabel);
             channel.binaryType = 'arraybuffer';
+
+            const arrayBuffer = await file.arrayBuffer();
 
             channel.onopen = async () => {
                 const metadata = { owner: this.name, time: time };
@@ -205,7 +243,6 @@ export class Connector {
                 }
                 channel.send(this.END_OF_FILE_MESSAGE);
 
-                const arrayBuffer = await file.arrayBuffer();
                 for (let i = 0; i < arrayBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
                     channel.send(arrayBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
                 }
@@ -213,20 +250,21 @@ export class Connector {
             };
 
             channel.onclose = () => {
-                this.files.push({ name: channelLabel, owner: this.name, time: time });
+                this.files.push({ name: channelLabel, buffer: arrayBuffer, owner: this.name, time: time });
                 if (this.onFileChanged)
                     this.onFileChanged();
             };
         }
     };
 
-    downloadFile = (blob, fileName) => {
-        // const a = document.createElement('a');
-        // const url = window.URL.createObjectURL(blob);
-        // a.href = url;
-        // a.download = fileName;
-        // a.click();
-        // window.URL.revokeObjectURL(url);
-        // a.remove()
+    downloadFile = (file) => {
+        const blob = new Blob([file.buffer]);
+        const a = document.createElement('a');
+        const url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
     };
 }

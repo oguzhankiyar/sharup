@@ -59,6 +59,10 @@ export default class App extends Component {
         this.setState({ ...this.state, name: value.toUpperCase() });
     };
 
+    onFileDownload = (file) => {
+        this.connector.downloadFile(file);
+    }
+
     componentDidMount = () => {
         if (location.hash) {
             const hash = location.hash.substring(1).toUpperCase();
@@ -133,7 +137,7 @@ export default class App extends Component {
                         {
                             this.state.files.map((value, index) => {
                                 return (
-                                    <div className="file" key={index}>
+                                    <div className="file" key={index} onClick={() => this.onFileDownload(value)}>
                                         <div className="name">{value.name}</div>
                                         <div className="info">by <div className="owner">{value.owner}</div> at <div className="date">{
                                             ("0" + new Date(value.time).getDate()).slice(-2) + "." +
