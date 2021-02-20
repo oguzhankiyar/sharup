@@ -83,7 +83,7 @@ export default class App extends Component {
             width: 210,
             height: 210,
             color: "#c5c5c5",
-            background: "#363636",
+            background: "#292C35",
             ecl: "H",
         }).svg();
 
@@ -127,6 +127,11 @@ export default class App extends Component {
                                 return (
                                     <div className="peer" key={index}>
                                         <div className="name">{value.name}</div>
+                                        <div className="info">at <div className="time">{
+                                            ("0" + new Date(value.time).getHours()).slice(-2) + ":" +
+                                            ("0" + new Date(value.time).getMinutes()).slice(-2) + ":" +
+                                            ("0" + new Date(value.time).getSeconds()).slice(-2)
+                                        }</div></div>
                                     </div>
                                 )
                             })
@@ -139,21 +144,15 @@ export default class App extends Component {
                                 return (
                                     <div className="file" key={index} onClick={() => this.onFileDownload(value)}>
                                         <div className="name">{value.name}</div>
-                                        <div className="info">by <div className="owner">{value.owner}</div> at <div className="date">{
-                                            ("0" + new Date(value.time).getDate()).slice(-2) + "." +
-                                            ("0" + (new Date(value.time).getMonth() + 1)).slice(-2) + "." +
-                                            ("000" + new Date(value.time).getFullYear()).slice(-4) + " " +
+                                        <div className="info">at <div className="time">{
                                             ("0" + new Date(value.time).getHours()).slice(-2) + ":" +
                                             ("0" + new Date(value.time).getMinutes()).slice(-2) + ":" +
                                             ("0" + new Date(value.time).getSeconds()).slice(-2)
-                                        }</div></div>
+                                        }</div> by <div className="owner">{value.owner}</div></div>
                                     </div>
                                 )
                             })
                         }
-                        {/* <pre>
-                            {JSON.stringify(this.state, null, 2)}
-                        </pre> */}
                     </div>
                 </div>
             </div>

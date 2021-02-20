@@ -119,7 +119,7 @@ export class Connector {
                 }
 
                 if (!this.peers.some(x => x.name === name) && name) {
-                    this.peers.push({ name });
+                    this.peers.push({ name, time: new Date() });
                 }
 
                 if (this.onPeerChanged) {

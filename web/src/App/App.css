@@ -94,23 +94,23 @@ button:hover:not(:disabled) {
 
 div.peer, div.file {
   display: table;
-  background-color: #252525;
-  border: 1px solid #111111;
-  box-shadow: 0 0 2px #111111;
+  background-color: #3b3f4b;
+  border: 1px solid #282b33;
+  box-shadow: 0 0 5px #1f2127;
   border-radius: 5px;
   color: #c5c5c5;
   padding: 12.5px 15px 15px 15px;
-  margin: 10px 50px;
-  min-width: 325px;
+  margin: 10px 0;
+  min-width: 200px;
   font-size: 15px;
   line-height: 20px;
 }
 
 div.peer:hover, div.file:hover {
   cursor: pointer;
-  background-color: #111111;
-  border: 1px solid #252525;
-  box-shadow: 0 0 3px #111111;
+  background-color: #464b58;
+  border: 1px solid #282b33;
+  box-shadow: 0 0 3px #1f2127;
   border-radius: 5px;
 }
 
@@ -119,19 +119,19 @@ div.peer div.name, div.file div.name {
   font-size: 17.5px;
 }
 
-div.file div.info {
+div.peer div.info, div.file div.info {
   color: #888;
   margin-top: 5px;
 }
 
-div.file div.info div {
+div.peer div.info div, div.file div.info div {
   display: inline;
 }
 
-div.file div.info div.owner {
+div.peer div.info div.owner, div.file div.info div.owner {
   color: #c5c5c5;
 }
 
-div.file div.info div.date {
+div.peer div.info div.time, div.file div.info div.time {
   color: #c5c5c5;
 }
