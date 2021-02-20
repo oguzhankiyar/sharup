@@ -10,7 +10,7 @@ services:
       - '3090:80'
     environment:
       - PORT=80
-      - PATH=/api
+      - SOCKET_PATH=/api
     networks:
       - nginx
 
