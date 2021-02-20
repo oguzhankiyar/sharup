@@ -22,6 +22,8 @@ export default class App extends Component {
                 code: this.connector.code,
                 name: this.connector.name
             });
+
+            location.hash = this.connector.code.toUpperCase();
         }
 
         this.connector.onPeerChanged = () => {
@@ -39,8 +41,6 @@ export default class App extends Component {
         }
 
         await this.connector.startConnection(this.state.code, this.state.name);
-
-        location.hash = this.state.code;
     };
 
     shareFile = (file) => {
@@ -52,7 +52,6 @@ export default class App extends Component {
     onCodeChange = (event) => {
         const { value } = event.target;
         this.setState({ ...this.state, code: value.toUpperCase() });
-        location.hash = value.toUpperCase();
     };
 
     onNameChange = (event) => {
