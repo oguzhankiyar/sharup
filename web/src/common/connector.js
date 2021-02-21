@@ -2,269 +2,288 @@ import { io } from 'socket.io-client';
 
 export class Connector {
 
-    onConnected = () => { };
-    onPeerChanged = () => { };
-    onFileChanged = () => { };
+	onConnected = () => { };
+	onPeerChanged = () => { };
+	onFileChanged = () => { };
 
-    isConnected = false;
-    peerConnection = null;
-    socketConnection = null;
-    code = null;
-    name = null;
-    files = [];
-    peers = [];
+	isConnected = false;
+	peerConnection = null;
+	socketConnection = null;
+	code = null;
+	name = null;
+	files = [];
+	peers = [];
 
-    MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE', JOIN_REQ: 'JOIN_REQ', JOIN_RES: 'JOIN_RES' };
-    MAXIMUM_MESSAGE_SIZE = 65535;
-    END_OF_FILE_MESSAGE = 'EOF';
+	MAXIMUM_MESSAGE_SIZE = 65535;
+	END_OF_FILE_MESSAGE = 'EOF';
 
-    startConnection = async (code, name) => {
-        this.code = code;
-        this.name = name;
+	startConnection = async (code, name) => {
+		this.code = code;
+		this.name = name;
 
-        try {
-            await this.createSocketConnection();
+		try {
+			await this.createSocketConnection();
 
-            await this.createPeerConnection();
+			await this.createPeerConnection();
 
-            await this.createAndSendOffer();
+			await this.createAndSendOffer();
 
-            this.isConnected = true;
-            if (this.onConnected)
-                this.onConnected();
+			this.isConnected = true;
+			if (this.onConnected)
+				this.onConnected();
 
-        } catch (err) {
-            console.error(err);
-        }
-    };
+		} catch (err) {
+			console.error(err);
+		}
+	};
 
-    createPeerConnection = async () => {
-        const peerConnection = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-        });
+	createPeerConnection = async () => {
+		const peerConnection = new RTCPeerConnection({
+			iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+		});
 
-        peerConnection.onnegotiationneeded = async () => {
-            await this.createAndSendOffer();
-        };
+		peerConnection.onnegotiationneeded = async () => {
+			await this.createAndSendOffer();
+		};
 
-        peerConnection.onicecandidate = (iceEvent) => {
-            if (iceEvent && iceEvent.candidate) {
-                this.sendMessage({
-                    message_type: this.MESSAGE_TYPE.CANDIDATE,
-                    content: iceEvent.candidate,
-                });
-            }
-        };
+		peerConnection.onicecandidate = (iceEvent) => {
+			if (iceEvent && iceEvent.candidate) {
+				this.socketConnection.emit('candidate', JSON.stringify({
+					code: this.code,
+					name: this.name,
+					content: iceEvent.candidate
+				}));
+			}
+		};
 
-        peerConnection.ondatachannel = (event) => {
-            const { channel } = event;
-            channel.binaryType = 'arraybuffer';
+		peerConnection.ondatachannel = (event) => {
+			const { channel } = event;
+			channel.binaryType = 'arraybuffer';
 
-            let metadata = null;
-            const receivedBuffers = [];
-            channel.onmessage = async (event) => {
-                const { data } = event;
-                try {
-                    if (data !== this.END_OF_FILE_MESSAGE) {
-                        receivedBuffers.push(data);
-                    } else {
-                        if (!!metadata) {
-                            const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
-                                const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
-                                tmp.set(new Uint8Array(acc), 0);
-                                tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
-                                return tmp;
-                            }, new Uint8Array());
-                            this.files.push({ name: channel.label, buffer: arrayBuffer, owner: metadata.owner, time: metadata.time });
-                            if (this.onFileChanged)
-                                this.onFileChanged();
-                            channel.close();
-                        } else {
-                            const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
-                                const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
-                                tmp.set(new Uint8Array(acc), 0);
-                                tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
-                                return tmp;
-                            }, new Uint8Array());
+			let metadata = null;
+			const receivedBuffers = [];
+			channel.onmessage = async (event) => {
+				const { data } = event;
+				try {
+					if (data !== this.END_OF_FILE_MESSAGE) {
+						receivedBuffers.push(data);
+					} else {
+						if (!!metadata) {
+							const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
+								const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
+								tmp.set(new Uint8Array(acc), 0);
+								tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
+								return tmp;
+							}, new Uint8Array());
+							this.files.push({ name: channel.label, buffer: arrayBuffer, owner: metadata.owner, time: metadata.time });
+							if (this.onFileChanged)
+								this.onFileChanged();
+							channel.close();
+						} else {
+							const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
+								const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
+								tmp.set(new Uint8Array(acc), 0);
+								tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
+								return tmp;
+							}, new Uint8Array());
 
-                            metadata = JSON.parse(new TextDecoder("utf-8").decode(arrayBuffer));
+							metadata = JSON.parse(new TextDecoder("utf-8").decode(arrayBuffer));
 
-                            receivedBuffers.splice(0, receivedBuffers.length);
-                        }
-                    }
-                } catch (err) {
-                    console.log('File transfer failed', err);
-                }
-            };
-        };
+							receivedBuffers.splice(0, receivedBuffers.length);
+						}
+					}
+				} catch (err) {
+					console.log('File transfer failed', err);
+				}
+			};
+		};
 
-        this.peerConnection = peerConnection;
-    };
+		this.peerConnection = peerConnection;
+	};
 
-    createSocketConnection = async () => {
-        const promise = new Promise((resolve, reject) => {
-            const socketConnection = io('sharup-api.kiyar.io');
+	createSocketConnection = async () => {
+		const promise = new Promise((resolve, reject) => {
+			const socketConnection = io('sharup-api.kiyar.io');
 
-            socketConnection.on('peer_connected', async (message) => {
-                const data = JSON.parse(message);
+			socketConnection.on('peer_connected', async (message) => {
+				const data = JSON.parse(message);
 
-                if (!data) {
-                    return;
-                }
+				if (!data) {
+					return;
+				}
 
-                const { id, code, name } = data;
+				const { id, code, name, time } = data;
 
-                if (code !== this.code) {
-                    return;
-                }
+				if (code !== this.code) {
+					return;
+				}
 
-                if (!this.peers.some(x => x.name === name) && name) {
-                    this.peers.push({ name, time: new Date() });
-                }
+				if (!this.peers.some(x => x.id === id) && id) {
+					this.peers.push({ id, name, time });
+				}
 
-                if (this.onPeerChanged) {
-                    this.onPeerChanged();
-                }
-            });
-            
-            socketConnection.on('peer_disconnected', async (message) => {
-                const data = JSON.parse(message);
+				if (this.onPeerChanged) {
+					this.onPeerChanged();
+				}
+			});
 
-                if (!data) {
-                    return;
-                }
+			socketConnection.on('peer_disconnected', async (message) => {
+				const data = JSON.parse(message);
 
-                const { id, code, name } = data;
+				if (!data) {
+					return;
+				}
 
-                if (code !== this.code) {
-                    return;
-                }
+				const { id, code } = data;
 
-                this.peers = this.peers.filter(x => x.name !== name);
+				if (code !== this.code) {
+					return;
+				}
 
-                if (this.onPeerChanged) {
-                    this.onPeerChanged();
-                }
-            });
+				this.peers = this.peers.filter(x => x.id !== id);
 
-            socketConnection.on('message', async (message) => {
-                const data = JSON.parse(message);
+				if (this.onPeerChanged) {
+					this.onPeerChanged();
+				}
+			});
 
-                if (!data) {
-                    return;
-                }
+			socketConnection.on('join_response', (message) => {
+				const data = JSON.parse(message);
 
-                const { message_type, content, name } = data;
-                try {
-                    if (message_type === this.MESSAGE_TYPE.JOIN_RES && content) {
-                        const { id, code, name } = content;
-                        this.code = code;
-                        this.name = name;
-                        if (this.onConnected)
-                            this.onConnected();
-                    } else if (message_type === this.MESSAGE_TYPE.CANDIDATE && content) {
-                        await this.peerConnection.addIceCandidate(content);
-                    } else if (message_type === this.MESSAGE_TYPE.SDP) {
-                        if (content.type === 'offer') {
-                            await this.peerConnection.setRemoteDescription(content);
-                            const answer = await this.peerConnection.createAnswer();
-                            await this.peerConnection.setLocalDescription(answer);
-                            this.sendMessage({
-                                message_type: this.MESSAGE_TYPE.SDP,
-                                content: answer,
-                            });
-                        } else if (content.type === 'answer') {
-                            await this.peerConnection.setRemoteDescription(content);
-                        } else {
-                            console.log('Unsupported SDP type.');
-                        }
-                    }
-                } catch (err) {
-                    console.error(err);
-                }
-            });
+				if (!data) {
+					return;
+				}
 
-            socketConnection.on('connect', () => {
-                resolve();
-                this.sendMessage({
-                    message_type: this.MESSAGE_TYPE.JOIN_REQ,
-                    content: {}
-                })
-            });
+				const { id, code, name } = data;
 
-            socketConnection.on('disconnect', () => {
-                reject();
-            });
+				this.code = code;
+				this.name = name;
+				if (this.onConnected)
+					this.onConnected();
+			});
 
-            socketConnection.on('connect_error', () => {
-                reject();
-            });
+			socketConnection.on('sdp', async (message) => {
+				const data = JSON.parse(message);
 
-            socketConnection.connect();
+				if (!data) {
+					return;
+				}
 
-            this.socketConnection = socketConnection;
-        });
+				const { code, name, content } = data;
 
-        return promise;
-    }
+				if (code !== this.code) {
+					return;
+				}
 
-    sendMessage = (message) => {
-        this.socketConnection.emit('message', JSON.stringify({
-            ...message,
-            code: this.code,
-            name: this.name
-        }));
-    }
+				if (content.type === 'offer') {
+					await this.peerConnection.setRemoteDescription(content);
+					const answer = await this.peerConnection.createAnswer();
+					await this.peerConnection.setLocalDescription(answer);
+					this.socketConnection.emit('sdp', JSON.stringify({
+						code: this.code,
+						name: this.name,
+						content: answer
+					}));
+				} else if (content.type === 'answer') {
+					await this.peerConnection.setRemoteDescription(content);
+				} else {
+					console.log('Unsupported SDP type.');
+				}
+			});
 
-    createAndSendOffer = async () => {
-        const offer = await this.peerConnection.createOffer();
-        await this.peerConnection.setLocalDescription(offer);
+			socketConnection.on('candidate', async (message) => {
+				const data = JSON.parse(message);
 
-        this.sendMessage({
-            message_type: this.MESSAGE_TYPE.SDP,
-            content: offer,
-        });
-    }
+				if (!data) {
+					return;
+				}
 
-    shareFile = async (file) => {
-        if (file) {
-            const time = new Date().getTime();
-            const channelLabel = file.name;
-            const channel = this.peerConnection.createDataChannel(channelLabel);
-            channel.binaryType = 'arraybuffer';
+				const { code, name, content } = data;
 
-            const arrayBuffer = await file.arrayBuffer();
+				if (code !== this.code) {
+					return;
+				}
 
-            channel.onopen = async () => {
-                const metadata = { owner: this.name, time: time };
-                const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
-                for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-                    channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-                }
-                channel.send(this.END_OF_FILE_MESSAGE);
+				if (!!content) {
+					await this.peerConnection.addIceCandidate(content);
+				}
+			});
 
-                for (let i = 0; i < arrayBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-                    channel.send(arrayBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-                }
-                channel.send(this.END_OF_FILE_MESSAGE);
-            };
+			socketConnection.on('connect', () => {
+				resolve();
 
-            channel.onclose = () => {
-                this.files.push({ name: channelLabel, buffer: arrayBuffer, owner: this.name, time: time });
-                if (this.onFileChanged)
-                    this.onFileChanged();
-            };
-        }
-    };
+				this.socketConnection.emit('join_request', JSON.stringify({
+					code: this.code,
+					name: this.name
+				}));
+			});
 
-    downloadFile = (file) => {
-        const blob = new Blob([file.buffer]);
-        const a = document.createElement('a');
-        const url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-    };
+			socketConnection.on('disconnect', () => {
+				reject();
+			});
+
+			socketConnection.on('connect_error', () => {
+				reject();
+			});
+
+			socketConnection.connect();
+
+			this.socketConnection = socketConnection;
+		});
+
+		return promise;
+	}
+
+	createAndSendOffer = async () => {
+		const offer = await this.peerConnection.createOffer();
+		await this.peerConnection.setLocalDescription(offer);
+
+		this.socketConnection.emit('sdp', JSON.stringify({
+			code: this.code,
+			name: this.name,
+			content: offer
+		}));
+	}
+
+	shareFile = async (file) => {
+		if (file) {
+			const time = new Date().getTime();
+			const channelLabel = file.name;
+			const channel = this.peerConnection.createDataChannel(channelLabel);
+			channel.binaryType = 'arraybuffer';
+
+			const arrayBuffer = await file.arrayBuffer();
+
+			channel.onopen = async () => {
+				const metadata = { owner: this.name, time: time };
+				const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
+				for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+					channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+				}
+				channel.send(this.END_OF_FILE_MESSAGE);
+
+				for (let i = 0; i < arrayBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+					channel.send(arrayBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+				}
+				channel.send(this.END_OF_FILE_MESSAGE);
+			};
+
+			channel.onclose = () => {
+				this.files.push({ name: channelLabel, buffer: arrayBuffer, owner: this.name, time: time });
+				if (this.onFileChanged)
+					this.onFileChanged();
+			};
+		}
+	};
+
+	downloadFile = (file) => {
+		const blob = new Blob([file.buffer]);
+		const a = document.createElement('a');
+		const url = window.URL.createObjectURL(blob);
+		a.href = url;
+		a.download = file.name;
+		a.click();
+		window.URL.revokeObjectURL(url);
+		a.remove();
+	};
 }

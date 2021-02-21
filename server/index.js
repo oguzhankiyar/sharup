@@ -5,153 +5,140 @@ const names = require('./names');
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http, {
-  cors: {
-    origin: '*'
-  }
+	cors: {
+		origin: '*'
+	}
 });
 
 app.get('/', (req, res) => {
-  res.send({ status: 200 });
+	res.send({ status: 200 });
 });
 
 const LISTEN_PORT = process.env.PORT || 2805;
 
 http.listen(LISTEN_PORT, () => {
-  console.log('Server listening at port ' + LISTEN_PORT);
+	console.log('Server listening at port ' + LISTEN_PORT);
 });
-
-const MESSAGE_TYPE = { SDP: 'SDP', CANDIDATE: 'CANDIDATE', JOIN_REQ: 'JOIN_REQ', JOIN_RES: 'JOIN_RES' };
 
 const peersByCode = {};
 
 io.on('connection', (socket) => {
-  const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+	const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-  const join = (message) => {
-    let code = message.code;
-    let name = message.name;
+	socket.on('disconnect', () => {
+		const code = Object.keys(peersByCode).filter(x => peersByCode[x].some(y => y.id === id))[0];
+		const peer = peersByCode[code].filter(x => x.id === id)[0];
 
-    if (!code) {
-      var result = '';
+		peersByCode[code] = peersByCode[code].filter(x => x.id !== id);
 
-      do {
-        result = '';
-        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        var charactersLength = characters.length;
-        for (var i = 0; i < 8; i++) {
-          result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        }
+		peersByCode[code]
+			.forEach(x => x.socket.emit('peer_disconnected', JSON.stringify({
+				id: peer.id,
+				code: code,
+				name: peer.name
+			})));
+	});
 
-        result = result.toUpperCase();
-      } while (peersByCode[result]);
+	socket.on('sdp', message => {
+		const data = JSON.parse(message);
 
-      code = result;
-    }
+		const { code, name, content } = data;
+		if (!peersByCode[code]) {
+			peersByCode[code] = [{ socket, id, name }];
+		} else if (!peersByCode[code].find(peer => peer.id === id)) {
+			peersByCode[code].push({ socket, id, name });
+		}
 
-    if (!peersByCode[code]) {
-      peersByCode[code] = [];
-    }
+		const reply = JSON.stringify({
+			code: code,
+			name: name,
+			content: content
+		});
 
-    if (!name) {
-      do {
-        name = names.list[Math.floor(Math.random() * names.list.length)];
-      } while (peersByCode[code].some(x => x.name === name));
-    }
+		peersByCode[code]
+			.filter(peer => peer.id !== id)
+			.forEach(peer => peer.socket.emit('sdp', reply));
+	});
 
-    peersByCode[code].push({ socket, id, name });
+	socket.on('candidate', message => {
+		const data = JSON.parse(message);
 
-    socket.emit('message', JSON.stringify({
-      message_type: MESSAGE_TYPE.JOIN_RES,
-      content: {
-        id: id,
-        code: code,
-        name: name
-      }
-    }));
+		const { code, name, content } = data;
 
-    peersByCode[code]
-      .filter(peer => peer.id !== id)
-      .forEach(peer => {
-        peer.socket.emit('peer_connected', JSON.stringify({
-          id: id,
-          code: code,
-          name: name
-        }));
+		if (!peersByCode[code]) {
+			peersByCode[code] = [{ socket, id, name }];
+		} else if (!peersByCode[code].find(peer => peer.id === id)) {
+			peersByCode[code].push({ socket, id, name });
+		}
 
-        socket.emit('peer_connected', JSON.stringify({
-          id: peer.id,
-          code: code,
-          name: peer.name
-        }));
-      });
-  };
+		const reply = JSON.stringify({
+			code: code,
+			name: name,
+			content: content
+		});
 
-  const sdp = (message) => {
-    const { code, name, content, message_type } = message;
-    if (!peersByCode[code]) {
-      peersByCode[code] = [{ socket, id, name }];
-    } else if (!peersByCode[code].find(peer => peer.id === id)) {
-      peersByCode[code].push({ socket, id, name });
-    }
+		peersByCode[code]
+			.filter(peer => peer.id !== id)
+			.forEach(peer => peer.socket.emit('candidate', reply));
+	});
 
-    const reply = JSON.stringify({
-      message_type: message_type,
-      content: content,
-      code: code,
-      name: name
-    });
+	socket.on('join_request', message => {
+		const data = JSON.parse(message);
+		const time = new Date().getTime();
 
-    peersByCode[code]
-      .filter(peer => peer.id !== id)
-      .forEach(peer => peer.socket.emit('message', reply));
-  };
+		let { code, name } = data;
 
-  const candidate = (message) => {
-    const { code, name, content, message_type } = message;
-    if (!peersByCode[code]) {
-      peersByCode[code] = [{ socket, id, name }];
-    } else if (!peersByCode[code].find(peer => peer.id === id)) {
-      peersByCode[code].push({ socket, id, name });
-    }
+		if (!code) {
+			let result = '';
 
-    const reply = JSON.stringify({
-      message_type: message_type,
-      content: content,
-      code: code,
-      name: name
-    });
+			do {
+				result = '';
+				const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+				const charactersLength = characters.length;
+				for (let i = 0; i < 8; i++) {
+					result += characters.charAt(Math.floor(Math.random() * charactersLength));
+				}
 
-    peersByCode[code]
-      .filter(peer => peer.id !== id)
-      .forEach(peer => peer.socket.emit('message', reply));
-  };
+				result = result.toUpperCase();
+			} while (peersByCode[result]);
 
-  const actions = {
-    SDP: sdp,
-    CANDIDATE: candidate,
-    JOIN_REQ: join
-  };
+			code = result;
+		}
 
-  socket.on('disconnect', () => {
-    const code = Object.keys(peersByCode).filter(x => peersByCode[x].some(y => y.id === id))[0];
-    const peer = peersByCode[code].filter(x => x.id === id)[0];
+		if (!peersByCode[code]) {
+			peersByCode[code] = [];
+		}
 
-    peersByCode[code] = peersByCode[code].filter(x => x.id !== id);
+		if (!name) {
+			do {
+				name = names.list[Math.floor(Math.random() * names.list.length)];
+			} while (peersByCode[code].some(x => x.name === name));
+		}
 
-    peersByCode[code]
-      .forEach(x => x.socket.emit('peer_disconnected', JSON.stringify({
-        id: peer.id,
-        code: code,
-        name: peer.name
-      })));
-  });
+		peersByCode[code].push({ socket, id, name, time });
 
-  socket.on('message', message => {
-    const { code, name, content, message_type } = JSON.parse(message);
-    const action = actions[message_type];
-    if (action)
-      action({ code, name, content, message_type });
-  });
+		socket.emit('join_response', JSON.stringify({
+			id: id,
+			code: code,
+			name: name
+		}));
 
+		peersByCode[code]
+			.filter(peer => peer.id !== id)
+			.forEach(peer => {
+				peer.socket.emit('peer_connected', JSON.stringify({
+					id: id,
+					code: code,
+					name: name,
+					time: time
+				}));
 
+				socket.emit('peer_connected', JSON.stringify({
+					id: peer.id,
+					code: code,
+					name: peer.name,
+					time: peer.time
+				}));
+			});
+	});
 });
