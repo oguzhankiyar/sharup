@@ -43,10 +43,15 @@ export default class App extends Component {
         await this.connector.startConnection(this.state.code, this.state.name);
     };
 
-    shareFile = (file) => {
-        if (!this.connector) return;
+    shareFile = async (file) => {
+        if (!this.connector) {
+            return;
+        }
 
-        this.connector.shareFile(file);
+        const name = file.name;
+        const content = await file.arrayBuffer();
+
+        this.connector.shareFile(name, content);
     };
 
     onCodeChange = (event) => {

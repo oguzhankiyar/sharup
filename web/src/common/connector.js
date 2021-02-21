@@ -126,11 +126,12 @@ export class Connector {
 						this.onPeerChanged();
 					}
 
+					// TODO: Send disconnected peer's files
 					this.files
 						.filter(x => x.owner.id === this.id)
 						.forEach(x => {
-							this.shareFile(x);
-						})
+							this.shareFile(x.name, x.content);
+						});
 				}
 			});
 
@@ -253,13 +254,14 @@ export class Connector {
 		}));
 	}
 
-	shareFile = (file) => {
-		if (!file) {
+	shareFile = (fileName, fileContent) => {
+		if (!fileName || !fileContent) {
 			return;
 		}
 
 		const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-		const name = file.name;
+		const name = fileName;
+		const content = fileContent;
 		const owner = { id: this.id, name: this.name };
 		const time = new Date().getTime();
 
@@ -267,16 +269,14 @@ export class Connector {
 
 		channel.binaryType = 'arraybuffer';
 
-		channel.onopen = async () => {
-			const metadata = { owner, time };
+		channel.onopen = () => {
+			const metadata = { id, owner, time };
 			const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
 
 			for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
 				channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
 			}
 			channel.send(this.END_OF_FILE_MESSAGE);
-
-			const content = await file.arrayBuffer();
 
 			for (let i = 0; i < content.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
 				channel.send(content.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
