@@ -148,7 +148,7 @@ export default class App extends Component {
                                             ("0" + new Date(value.time).getHours()).slice(-2) + ":" +
                                             ("0" + new Date(value.time).getMinutes()).slice(-2) + ":" +
                                             ("0" + new Date(value.time).getSeconds()).slice(-2)
-                                        }</div> by <div className="owner">{value.owner}</div></div>
+                                        }</div> by <div className="owner">{value.owner.name}</div></div>
                                     </div>
                                 )
                             })

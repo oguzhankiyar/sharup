@@ -9,6 +9,7 @@ export class Connector {
 	isConnected = false;
 	peerConnection = null;
 	socketConnection = null;
+	id = null;
 	code = null;
 	name = null;
 	files = [];
@@ -69,25 +70,25 @@ export class Connector {
 						receivedBuffers.push(data);
 					} else {
 						if (!!metadata) {
-							const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
-								const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
+							const content = receivedBuffers.reduce((acc, content) => {
+								const tmp = new Uint8Array(acc.byteLength + content.byteLength);
 								tmp.set(new Uint8Array(acc), 0);
-								tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
+								tmp.set(new Uint8Array(content), acc.byteLength);
 								return tmp;
 							}, new Uint8Array());
-							this.files.push({ name: channel.label, buffer: arrayBuffer, owner: metadata.owner, time: metadata.time });
+							this.files.push({ name: channel.label, content: content, owner: metadata.owner, time: metadata.time });
 							if (this.onFileChanged)
 								this.onFileChanged();
 							channel.close();
 						} else {
-							const arrayBuffer = receivedBuffers.reduce((acc, arrayBuffer) => {
-								const tmp = new Uint8Array(acc.byteLength + arrayBuffer.byteLength);
+							const content = receivedBuffers.reduce((acc, content) => {
+								const tmp = new Uint8Array(acc.byteLength + content.byteLength);
 								tmp.set(new Uint8Array(acc), 0);
-								tmp.set(new Uint8Array(arrayBuffer), acc.byteLength);
+								tmp.set(new Uint8Array(content), acc.byteLength);
 								return tmp;
 							}, new Uint8Array());
 
-							metadata = JSON.parse(new TextDecoder("utf-8").decode(arrayBuffer));
+							metadata = JSON.parse(new TextDecoder("utf-8").decode(content));
 
 							receivedBuffers.splice(0, receivedBuffers.length);
 						}
@@ -120,10 +121,16 @@ export class Connector {
 
 				if (!this.peers.some(x => x.id === id) && id) {
 					this.peers.push({ id, name, time });
-				}
 
-				if (this.onPeerChanged) {
-					this.onPeerChanged();
+					if (this.onPeerChanged) {
+						this.onPeerChanged();
+					}
+
+					this.files
+						.filter(x => x.owner.id === this.id)
+						.forEach(x => {
+							this.shareFile(x);
+						})
 				}
 			});
 
@@ -156,6 +163,7 @@ export class Connector {
 
 				const { id, code, name } = data;
 
+				this.id = id;
 				this.code = code;
 				this.name = name;
 				if (this.onConnected)
@@ -245,39 +253,47 @@ export class Connector {
 		}));
 	}
 
-	shareFile = async (file) => {
-		if (file) {
-			const time = new Date().getTime();
-			const channelLabel = file.name;
-			const channel = this.peerConnection.createDataChannel(channelLabel);
-			channel.binaryType = 'arraybuffer';
-
-			const arrayBuffer = await file.arrayBuffer();
-
-			channel.onopen = async () => {
-				const metadata = { owner: this.name, time: time };
-				const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
-				for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-					channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-				}
-				channel.send(this.END_OF_FILE_MESSAGE);
-
-				for (let i = 0; i < arrayBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-					channel.send(arrayBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-				}
-				channel.send(this.END_OF_FILE_MESSAGE);
-			};
-
-			channel.onclose = () => {
-				this.files.push({ name: channelLabel, buffer: arrayBuffer, owner: this.name, time: time });
-				if (this.onFileChanged)
-					this.onFileChanged();
-			};
+	shareFile = (file) => {
+		if (!file) {
+			return;
 		}
+
+		const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+		const name = file.name;
+		const owner = { id: this.id, name: this.name };
+		const time = new Date().getTime();
+
+		const channel = this.peerConnection.createDataChannel(name);
+
+		channel.binaryType = 'arraybuffer';
+
+		channel.onopen = async () => {
+			const metadata = { owner, time };
+			const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
+
+			for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+				channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+			}
+			channel.send(this.END_OF_FILE_MESSAGE);
+
+			const content = await file.arrayBuffer();
+
+			for (let i = 0; i < content.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+				channel.send(content.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+			}
+			channel.send(this.END_OF_FILE_MESSAGE);
+
+			this.files.push({ name, content, owner, time });
+		};
+
+		channel.onclose = () => {
+			if (this.onFileChanged)
+				this.onFileChanged();
+		};
 	};
 
 	downloadFile = (file) => {
-		const blob = new Blob([file.buffer]);
+		const blob = new Blob([file.content]);
 		const a = document.createElement('a');
 		const url = window.URL.createObjectURL(blob);
 		a.href = url;
