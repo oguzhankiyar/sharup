@@ -7,34 +7,42 @@
 
 .App .container {
   display: table;
-  margin: 10% auto 0 auto;
-  padding: 10px 15px;
+  padding: 5%;
+  margin-top: 49px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 450px;
 }
 
-pre {
-  font-size: 14px;
-  text-align: left;
-  opacity: 0.5;
+.left {
+  display: table;
+  width: 100%;
 }
 
-pre:hover {
-  opacity: .75;
+.left .qr, .left .form {
+  float: left;
 }
 
-svg {
-  margin: 10px 0;
+.left .qr {
+  margin-right: 25px;
+  padding: 10px 0;
+}
+
+.right {
+  display: table;
+  width: 100%;
 }
 
 .label {
   display: table;
-  margin-bottom: 2px;
+  margin: 5px 0 5px;
 }
 
 input {
   border: none;
   outline: none;
   border-radius: 3px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   box-shadow: 0 0 3px #fff;
   background-color: #d5d5d5;
   color: #363636;
@@ -69,6 +77,7 @@ button {
   color: white;
   opacity: 0.75;
   width: 210px;
+  margin: 5px 0;
 }
 
 button.start {
@@ -92,6 +101,52 @@ button:hover:not(:disabled) {
   opacity: 1;
 }
 
+.tabs {
+  display: table;
+  clear: both;
+  margin: 15px 0;
+}
+
+.tabs .tab {
+  display: table;
+  float: left;
+  opacity: .4;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 0 7.5px 0;
+  width: 215px;
+  color: #f5f5f5;
+  text-align: center;
+  border-bottom: 2px solid transparent;
+}
+
+.tabs .tab:hover {
+  opacity: .6;
+  color: #f5f5f5;
+  border-bottom: 2px solid #ccc;
+}
+
+.tabs .tab.active {
+  opacity: 1;
+  color: #f5f5f5;
+  border-bottom: 2px solid #ccc;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.content .warning {
+  display: table;
+  opacity: .25;
+  font-size: 15px;
+  padding: 25px 0;
+  width: 420px;
+  text-align: center;
+}
+
 div.peer, div.file {
   display: table;
   background-color: #3b3f4b;
@@ -100,8 +155,8 @@ div.peer, div.file {
   border-radius: 5px;
   color: #c5c5c5;
   padding: 12.5px 15px 15px 15px;
-  margin: 10px 0;
-  min-width: 200px;
+  margin: 0 10px 10px 0;
+  width: 420px;
   font-size: 15px;
   line-height: 20px;
 }
