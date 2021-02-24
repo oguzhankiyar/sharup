@@ -1,14 +1,17 @@
-import { Component, createRef } from 'react';
+import { Component } from 'react';
 import { Connector } from '../common/connector';
-import QRCode from '../common/qrcode';
+
 import { Header } from './Header/Header';
+import { QRImage } from './QRImage/QRImage';
+import { PeerList } from './PeerList/PeerList';
+import { FileList } from './FileList/FileList';
+import { FileButton } from './FileButton/FileButton';
 
 import './App.css';
 
 export default class App extends Component {
 
     state = { isConnected: false, code: '', name: '', isPeersShowing: true, isFilesShowing: false, peers: [], files: [] };
-    inputFile = createRef();
 
     connector = null;
 
@@ -89,24 +92,14 @@ export default class App extends Component {
         }
     };
 
-    render() {
-        const svg = !this.state.code || this.state.code.length === 0 ? '<div style="display: table; margin: 90px 60.5px;">QR Code</div>' : new QRCode({
-            content: this.state.code,
-            padding: 0,
-            width: 210,
-            height: 210,
-            color: "#c5c5c5",
-            background: "#292C35",
-            ecl: "H",
-        }).svg();
-
+    render = () => {
         return (
             <div className="App">
                 <Header />
                 <div className="container">
                     <div className="left">
                         <div className="qr">
-                            <div dangerouslySetInnerHTML={{ __html: svg }} />
+                            <QRImage code={this.state.code} />
                         </div>
                         <div className="form">
                             <div style={this.state.isConnected ? { display: 'block' } : { display: 'none' }}>
@@ -114,10 +107,7 @@ export default class App extends Component {
                                 <input className="code" value={this.state.code} disabled />
                                 <span className="label">Name</span>
                                 <input className="name" value={this.state.name} disabled />
-                                <div>
-                                    <input type="file" ref={this.inputFile} onChange={(event) => this.shareFile(event.target.files[0])} style={{ display: 'none' }} />
-                                    <button type="submit" className="add" onClick={() => this.inputFile.current.click()}>Add File</button>
-                                </div>
+                                <FileButton onSelect={(file => this.shareFile(file))} />
                             </div>
                             <div style={this.state.isConnected ? { display: 'none' } : { display: 'block' }}>
                                 <span className="label">Code</span>
@@ -132,58 +122,25 @@ export default class App extends Component {
                     </div>
                     <div className="right">
                         <div className="tabs">
-                            <div onClick={() => this.showPeers()} className={this.state.isPeersShowing ? 'tab active' : 'tab'} style={{ display: 'inline-table', marginRight: 10 }}>Peers{this.state.peers.length > 0 ? ' (' + this.state.peers.length + ')' : ''}</div>
-                            <div onClick={() => this.showFiles()} className={this.state.isFilesShowing ? 'tab active' : 'tab'} style={{ display: 'inline-table', marginRight: 10 }}>Files{this.state.files.length > 0 ? ' (' + this.state.files.length + ')' : ''}</div>
+                            <div
+                                className={this.state.isPeersShowing ? 'tab active' : 'tab'}
+                                onClick={() => this.showPeers()}>Peers{this.state.peers.length > 0 ? ' (' + this.state.peers.length + ')' : ''}</div>
+                            <div
+                                className={this.state.isFilesShowing ? 'tab active' : 'tab'}
+                                onClick={() => this.showFiles()}>Files{this.state.files.length > 0 ? ' (' + this.state.files.length + ')' : ''}</div>
                         </div>
                         <div className="content">
-                            {
-                                this.state.isPeersShowing
-                                    ?
-                                        this.state.peers.length > 0
-                                        ?
-                                            this.state.peers.map((value, index) => {
-                                                return (
-                                                    <div className="peer" key={index}>
-                                                        <div className="name">{value.name}</div>
-                                                        <div className="info">at <div className="time">{
-                                                            ("0" + new Date(value.time).getHours()).slice(-2) + ":" +
-                                                            ("0" + new Date(value.time).getMinutes()).slice(-2) + ":" +
-                                                            ("0" + new Date(value.time).getSeconds()).slice(-2)
-                                                        }</div></div>
-                                                    </div>
-                                                )
-                                            })
-                                        :                                
-                                        <div className="warning">There is no peers to show</div>
-                                    :
-                                    <></>
-                            }
-                            {
-                                this.state.isFilesShowing
-                                ?
-                                    this.state.files.length > 0
-                                        ?
-                                        this.state.files.map((value, index) => {
-                                            return (
-                                                <div className="file" key={index} onClick={() => this.onFileDownload(value)}>
-                                                    <div className="name">{value.name}</div>
-                                                    <div className="info">at <div className="time">{
-                                                        ("0" + new Date(value.time).getHours()).slice(-2) + ":" +
-                                                        ("0" + new Date(value.time).getMinutes()).slice(-2) + ":" +
-                                                        ("0" + new Date(value.time).getSeconds()).slice(-2)
-                                                    }</div> by <div className="owner">{value.owner.name}</div></div>
-                                                </div>
-                                            )
-                                        })
-                                        :
-                                        <div className="warning">There is no files to show</div>
-                                :
-                                <></>
-                            }
+                            <PeerList
+                                items={this.state.peers}
+                                show={this.state.isPeersShowing} />
+                            <FileList
+                                items={this.state.files}
+                                show={this.state.isFilesShowing}
+                                onDownload={file => this.onFileDownload(file)} />
                         </div>
                     </div>
                 </div>
             </div>
         );
-    }
+    };
 }
