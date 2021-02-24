@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { Connector } from '../common/connector';
 
 import { Header } from './Header/Header';
+import { Home } from './Home/Home';
 import { QRImage } from './QRImage/QRImage';
 import { PeerList } from './PeerList/PeerList';
 import { FileList } from './FileList/FileList';
@@ -11,7 +12,7 @@ import './App.css';
 
 export default class App extends Component {
 
-    state = { isConnected: false, code: '', name: '', isPeersShowing: true, isFilesShowing: false, peers: [], files: [] };
+    state = { isStarted: false, isConnected: false, code: '', name: '', isPeersShowing: true, isFilesShowing: false, peers: [], files: [] };
 
     connector = null;
 
@@ -74,25 +75,47 @@ export default class App extends Component {
     showPeers() {
         this.setState({ ...this.state, isPeersShowing: true, isFilesShowing: false });
     }
-    
+
     showFiles() {
         this.setState({ ...this.state, isPeersShowing: false, isFilesShowing: true });
     }
+
+    onCreate = () => {
+        this.setState({ ...this.state, isStarted: true });
+        this.startConnection();
+    };
+
+    onJoin = (code) => {
+        this.setState({ ...this.state, isStarted: true, code: code }, () => {
+            this.startConnection();
+        });
+    };
 
     componentDidMount = () => {
         if (location.hash) {
             const hash = location.hash.substring(1).toUpperCase();
             if (hash.length === 8) {
-                this.setState({ ...this.state, code: hash }, () => {
+                this.setState({ ...this.state, isStarted: true, code: hash }, () => {
                     this.startConnection();
                 });
             }
-        } else {
-            this.startConnection();
         }
     };
 
     render = () => {
+        if (!this.state.isStarted) {
+            return (
+                <div className="App">
+                    <Header />
+                    <div className="container">
+                        <Home
+                            onCreate={() => this.onCreate()}
+                            onJoin={(code) => this.onJoin(code)} />
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="App">
                 <Header />
@@ -102,21 +125,12 @@ export default class App extends Component {
                             <QRImage code={this.state.code} />
                         </div>
                         <div className="form">
-                            <div style={this.state.isConnected ? { display: 'block' } : { display: 'none' }}>
+                            <div>
                                 <span className="label">Code</span>
                                 <input className="code" value={this.state.code} disabled />
                                 <span className="label">Name</span>
                                 <input className="name" value={this.state.name} disabled />
                                 <FileButton onSelect={(file => this.shareFile(file))} />
-                            </div>
-                            <div style={this.state.isConnected ? { display: 'none' } : { display: 'block' }}>
-                                <span className="label">Code</span>
-                                <input className="code" value={this.state.code} onChange={this.onCodeChange} onKeyPress={(event) => { if (event.key === 'Enter') this.startConnection(); }} autoComplete="none" maxLength="8" />
-                                <span className="label">Name</span>
-                                <input className="name" value={this.state.name} onChange={this.onNameChange} onKeyPress={(event) => { if (event.key === 'Enter') this.startConnection(); }} autoComplete="none" />
-                                <div>
-                                    <button type="submit" className="start" disabled={!this.state.code || !this.state.name} onClick={this.startConnection}>Start</button>
-                                </div>
                             </div>
                         </div>
                     </div>
