@@ -3,8 +3,6 @@ import { Component } from "react";
 import './FileItem.css';
 
 export class FileItem extends Component {
-    props = { value: { name: null, owner: { name: null }, time: null, onDownload: (file) => {} } };
-
     render = () => {
         if (!this.props.value) {
             return (<></>);

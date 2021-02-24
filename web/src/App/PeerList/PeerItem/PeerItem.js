@@ -2,9 +2,7 @@ import { Component } from "react";
 
 import './PeerItem.css';
 
-export class PeerItem extends Component {
-    props = { value: { name: null, time: null } };
-    
+export class PeerItem extends Component {    
     render = () => {
         if (!this.props.value) {
             return (<></>);

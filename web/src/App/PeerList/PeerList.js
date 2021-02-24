@@ -5,8 +5,6 @@ import { PeerItem } from './PeerItem/PeerItem';
 import './PeerList.css';
 
 export class PeerList extends Component {
-    props = { items: [], show: false };
-
     render = () => {
         if (this.props.show === false || !this.props.items) {
             return (<></>);

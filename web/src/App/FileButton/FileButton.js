@@ -3,8 +3,6 @@ import { Component, createRef } from 'react';
 import './FileButton.css';
 
 export class FileButton extends Component {
-    props = { onSelect: (file) => {} };
-
     inputFile = createRef();
 
     render = () => {

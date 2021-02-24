@@ -5,8 +5,6 @@ import { FileItem } from './FileItem/FileItem';
 import './FileList.css';
 
 export class FileList extends Component {
-    props = { items: [], onDownload: (file) => {}, show: false };
-
     render = () => {
         if (this.props.show === false || !this.props.items) {
             return (<></>);
