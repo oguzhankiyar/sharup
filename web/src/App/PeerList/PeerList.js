@@ -14,7 +14,7 @@ export class PeerList extends Component {
             <div className="PeerList">
                 {
                     this.props.items.length > 0
-                        ? this.props.items.map((value, index) => <PeerItem value={value} key={index} />)
+                        ? this.props.items.sort((x, y) => x.time - y.time).map((value, index) => <PeerItem value={value} key={index} />)
                         : <div className="warning">There is no peers to show</div>
                 }
             </div>
