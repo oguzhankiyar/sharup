@@ -138,10 +138,20 @@ export default class App extends Component {
                         <div className="tabs">
                             <div
                                 className={this.state.isPeersShowing ? 'tab active' : 'tab'}
-                                onClick={() => this.showPeers()}>Peers{this.state.peers.length > 0 ? ' (' + this.state.peers.length + ')' : ''}</div>
+                                onClick={() => this.showPeers()}>
+                                    Peers
+                                    {
+                                        this.state.peers.length > 0 ? <span className="label">{this.state.peers.length}</span> : <></>
+                                    }
+                            </div>
                             <div
                                 className={this.state.isFilesShowing ? 'tab active' : 'tab'}
-                                onClick={() => this.showFiles()}>Files{this.state.files.length > 0 ? ' (' + this.state.files.length + ')' : ''}</div>
+                                onClick={() => this.showFiles()}>
+                                    Files
+                                    {
+                                        this.state.files.length > 0 ? <span className="label">{this.state.files.length}</span> : <></>
+                                    }
+                            </div>
                         </div>
                         <div className="content">
                             <PeerList
