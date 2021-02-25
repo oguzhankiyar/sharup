@@ -19,7 +19,7 @@ export class QRImage extends Component {
             width: this.props.width || 210,
             height: this.props.height || 210,
             color: this.props.color || '#c5c5c5',
-            background: this.props.background || '#292C35',
+            background: this.props.background || 'transparent',
             ecl: this.props.ecl || 'H',
         }).svg();
 
