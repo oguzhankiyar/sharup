@@ -25,6 +25,17 @@ div.peer div.name {
     font-size: 17.5px;
 }
 
+div.peer div.label {
+  display: inline-table;
+  float: right;
+  background-color: #9b7b1b;
+  opacity: .75;
+  margin: 2.5px 0 2.5px -50px;
+  padding: 1px 7.5px;
+  border-radius: 2.5px;
+  font-size: 13px;
+}
+
 div.peer div.info {
     color: #888;
     margin-top: 5px;

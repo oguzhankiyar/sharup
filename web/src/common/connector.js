@@ -28,11 +28,6 @@ export class Connector {
 			await this.createPeerConnection();
 
 			await this.createAndSendOffer();
-
-			this.isConnected = true;
-			if (this.onConnected)
-				this.onConnected();
-
 		} catch (err) {
 			console.error(err);
 		}
@@ -114,13 +109,14 @@ export class Connector {
 				}
 
 				const { id, code, name, time } = data;
+				const me = false;
 
 				if (code !== this.code) {
 					return;
 				}
 
 				if (!this.peers.some(x => x.id === id) && id) {
-					this.peers.push({ id, name, time });
+					this.peers.push({ id, name, time, me });
 
 					if (this.onPeerChanged) {
 						this.onPeerChanged();
@@ -163,12 +159,20 @@ export class Connector {
 				}
 
 				const { id, code, name } = data;
+				const time = new Date().getTime();
+				const me = true;
 
 				this.id = id;
 				this.code = code;
 				this.name = name;
+
+				this.isConnected = true;
 				if (this.onConnected)
 					this.onConnected();
+
+				this.peers.push({ id, name, time, me });
+				if (this.onPeerChanged)
+					this.onPeerChanged();
 			});
 
 			socketConnection.on('sdp', async (message) => {
