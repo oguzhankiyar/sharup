@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import Config from '../config.json';
 
 export class Connector {
 
@@ -101,7 +102,7 @@ export class Connector {
 
 	createSocketConnection = async () => {
 		const promise = new Promise((resolve, reject) => {
-			const socketConnection = io('sharup-api.kiyar.io');
+			const socketConnection = io(Config.host);
 
 			socketConnection.on('peer_connected', async (message) => {
 				const data = JSON.parse(message);
