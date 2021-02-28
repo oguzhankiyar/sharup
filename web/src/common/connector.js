@@ -63,15 +63,19 @@ export class Connector {
 						receivedBuffers.push(data);
 					} else {
 						if (!!metadata) {
+							const id = channel.label;
+							const { name, owner, time } = metadata;
 							const content = receivedBuffers.reduce((acc, content) => {
 								const tmp = new Uint8Array(acc.byteLength + content.byteLength);
 								tmp.set(new Uint8Array(acc), 0);
 								tmp.set(new Uint8Array(content), acc.byteLength);
 								return tmp;
 							}, new Uint8Array());
-							this.files.push({ name: channel.label, content: content, owner: metadata.owner, time: metadata.time });
+
+							this.files.push({ id, name, content, owner, time });
 							if (this.onFileChanged)
 								this.onFileChanged();
+								
 							channel.close();
 						} else {
 							const content = receivedBuffers.reduce((acc, content) => {
@@ -81,7 +85,7 @@ export class Connector {
 								return tmp;
 							}, new Uint8Array());
 
-							metadata = JSON.parse(new TextDecoder("utf-8").decode(content));
+							metadata = JSON.parse(new TextDecoder('utf-8').decode(content));
 
 							receivedBuffers.splice(0, receivedBuffers.length);
 						}
@@ -305,13 +309,13 @@ export class Connector {
 		const time = new Date().getTime();
 
 		Object.keys(this.peerConnections).filter(x => x !== this.id).forEach(x => {
-			const channel = this.peerConnections[x].createDataChannel(name);
+			const channel = this.peerConnections[x].createDataChannel(id);
 
 			channel.binaryType = 'arraybuffer';
 
 			channel.onopen = () => {
-				const metadata = { id, owner, time };
-				const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
+				const metadata = { id, name, owner, time };
+				const metadataBuffer = new TextEncoder('utf-8').encode(JSON.stringify(metadata));
 
 				for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
 					channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
@@ -330,7 +334,7 @@ export class Connector {
 			};
 		});
 
-		this.files.push({ name, content, owner, time });
+		this.files.push({ id, name, content, owner, time });
 	};
 
 	downloadFile = (file) => {
