@@ -53,7 +53,7 @@ export default class App extends Component {
         await this.connector.startConnection(code, name);
     };
 
-    shareFile = async (file) => {
+    shareNewFile = async (file) => {
         if (!this.connector) {
             return;
         }
@@ -61,7 +61,7 @@ export default class App extends Component {
         const name = file.name;
         const content = await file.arrayBuffer();
 
-        this.connector.shareFile(name, content);
+        this.connector.shareNewFile(name, content);
     };
 
     onCodeChange = (event) => {
@@ -135,7 +135,7 @@ export default class App extends Component {
                                 <input className="code" value={this.state.code} disabled />
                                 <span className="label">Name</span>
                                 <input className="name" value={this.state.name} disabled />
-                                <FileButton onSelect={(file => this.shareFile(file))} />
+                                <FileButton onSelect={(file => this.shareNewFile(file))} />
                             </div>
                         </div>
                     </div>

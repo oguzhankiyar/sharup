@@ -130,11 +130,10 @@ export class Connector {
 						this.onPeerChanged();
 					}
 
-					// TODO: Send disconnected peer's files
 					this.files
-						.filter(x => x.owner.id === this.id)
+						.filter(x => x.owner.id === this.id || (x.deputy && x.deputy.id === this.id))
 						.forEach(x => {
-							this.shareFile(x.name, x.content);
+							this.shareFile(x, [ id ]);
 						});
 				}
 			});
@@ -146,11 +145,17 @@ export class Connector {
 					return;
 				}
 
-				const { id, code } = data;
+				const { id, code, deputy } = data;
 
 				if (code !== this.code) {
 					return;
 				}
+				
+				this.files
+					.filter(x => x.owner.id === id)
+					.forEach(x => {
+						x.deputy = deputy
+					});
 
 				this.peers = this.peers.filter(x => x.id !== id);
 
@@ -297,7 +302,7 @@ export class Connector {
 		}));
 	}
 
-	shareFile = (fileName, fileContent) => {
+	shareNewFile = (fileName, fileContent, receivers) => {
 		if (!fileName || !fileContent) {
 			return;
 		}
@@ -308,7 +313,27 @@ export class Connector {
 		const owner = { id: this.id, name: this.name };
 		const time = new Date().getTime();
 
-		Object.keys(this.peerConnections).filter(x => x !== this.id).forEach(x => {
+		if (!receivers) {
+			receivers = Object.keys(this.peerConnections).filter(x => x !== this.id);
+		}
+
+		const file = { id, name, content, owner, time };
+
+		this.shareFile(file, receivers);
+	};
+
+	shareFile(file, receivers) {
+		if (!file) {
+			return;
+		}
+
+		const { id, name, content, owner, time } = file;
+
+		if (!receivers) {
+			receivers = Object.keys(this.peerConnections).filter(x => x !== this.id);
+		}
+
+		receivers.forEach(x => {
 			const channel = this.peerConnections[x].createDataChannel(id);
 
 			channel.binaryType = 'arraybuffer';
@@ -334,7 +359,9 @@ export class Connector {
 			};
 		});
 
-		this.files.push({ id, name, content, owner, time });
+		if (!this.files.some(x => x.id === id)) {
+			this.files.push(file);
+		}
 	};
 
 	downloadFile = (file) => {
