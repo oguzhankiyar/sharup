@@ -12,11 +12,11 @@ import './App.css';
 
 export default class App extends Component {
 
-    state = { isStarted: false, isConnected: false, code: '', name: '', isPeersShowing: true, isFilesShowing: false, peers: [], files: [] };
+    state = { isConnected: false, code: '', name: '', isPeersShowing: true, isFilesShowing: false, peers: [], files: [] };
 
     connector = null;
 
-    startConnection = async () => {
+    startConnection = async (code, name) => {
         this.connector = new Connector();
 
         this.connector.onConnected = () => {
@@ -28,6 +28,12 @@ export default class App extends Component {
             });
 
             location.hash = this.connector.code.toUpperCase();
+        };
+
+        this.connector.onFailed = (error) => {
+            alert(error);
+            this.setState({ ...this.state, isConnected: false });
+            location.hash = '';
         }
 
         this.connector.onPeerChanged = () => {
@@ -35,16 +41,16 @@ export default class App extends Component {
                 ...this.state,
                 peers: this.connector.peers
             });
-        }
+        };
 
         this.connector.onFileChanged = () => {
             this.setState({
                 ...this.state,
                 files: this.connector.files
             });
-        }
+        };
 
-        await this.connector.startConnection(this.state.code, this.state.name);
+        await this.connector.startConnection(code, name);
     };
 
     shareFile = async (file) => {
@@ -81,29 +87,28 @@ export default class App extends Component {
     }
 
     onCreate = () => {
-        this.setState({ ...this.state, isStarted: true });
-        this.startConnection();
+        this.startConnection('', '');
     };
 
     onJoin = (code) => {
-        this.setState({ ...this.state, isStarted: true, code: code }, () => {
-            this.startConnection();
-        });
+        this.startConnection(code, '');
     };
 
     componentDidMount = () => {
         if (location.hash) {
             const hash = location.hash.substring(1).toUpperCase();
             if (hash.length === 8) {
-                this.setState({ ...this.state, isStarted: true, code: hash }, () => {
-                    this.startConnection();
-                });
+                setTimeout(() => {
+                    this.startConnection(hash, '');
+                }, 500);
+            } else {
+                location.hash = '';
             }
         }
     };
 
     render = () => {
-        if (!this.state.isStarted) {
+        if (!this.state.isConnected) {
             return (
                 <div className="App">
                     <Header />
@@ -139,18 +144,18 @@ export default class App extends Component {
                             <div
                                 className={this.state.isPeersShowing ? 'tab active' : 'tab'}
                                 onClick={() => this.showPeers()}>
-                                    Peers
+                                Peers
                                     {
-                                        this.state.peers.length > 0 ? <span className="label">{this.state.peers.length}</span> : <></>
-                                    }
+                                    this.state.peers.length > 0 ? <span className="label">{this.state.peers.length}</span> : <></>
+                                }
                             </div>
                             <div
                                 className={this.state.isFilesShowing ? 'tab active' : 'tab'}
                                 onClick={() => this.showFiles()}>
-                                    Files
+                                Files
                                     {
-                                        this.state.files.length > 0 ? <span className="label">{this.state.files.length}</span> : <></>
-                                    }
+                                    this.state.files.length > 0 ? <span className="label">{this.state.files.length}</span> : <></>
+                                }
                             </div>
                         </div>
                         <div className="content">

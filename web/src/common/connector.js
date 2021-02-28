@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 export class Connector {
 
 	onConnected = () => { };
+	onFailed = (error) => { };
 	onPeerChanged = () => { };
 	onFileChanged = () => { };
 
@@ -166,9 +167,17 @@ export class Connector {
 					return;
 				}
 
-				const { id, code, name } = data;
+				const { id, status, error, code, name } = data;
 				const time = new Date().getTime();
 				const me = true;
+
+				if (!status || status === false) {
+					if (this.onFailed)
+						this.onFailed(error);
+						
+					socketConnection.close();
+					return;
+				}
 
 				this.id = id;
 				this.code = code;

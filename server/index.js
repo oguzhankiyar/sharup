@@ -94,6 +94,12 @@ io.on('connection', (socket) => {
 			} while (peersByCode[result]);
 
 			code = result;
+		} else if (!peersByCode[code]) {
+			socket.emit('join_response', JSON.stringify({
+				id: self,
+				status: false,
+				error: 'Wrong Code!'
+			}));
 		}
 
 		if (!peersByCode[code]) {
@@ -110,6 +116,7 @@ io.on('connection', (socket) => {
 
 		socket.emit('join_response', JSON.stringify({
 			id: self,
+			status: true,
 			code: code,
 			name: name
 		}));
