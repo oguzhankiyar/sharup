@@ -7,7 +7,7 @@ export class Connector {
 	onFileChanged = () => { };
 
 	isConnected = false;
-	peerConnection = null;
+	peerConnections = {};
 	socketConnection = null;
 	id = null;
 	code = null;
@@ -24,27 +24,24 @@ export class Connector {
 
 		try {
 			await this.createSocketConnection();
-
-			await this.createPeerConnection();
-
-			await this.createAndSendOffer();
 		} catch (err) {
 			console.error(err);
 		}
 	};
 
-	createPeerConnection = async () => {
+	createPeerConnection = async (id) => {
 		const peerConnection = new RTCPeerConnection({
 			iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 		});
 
 		peerConnection.onnegotiationneeded = async () => {
-			await this.createAndSendOffer();
+			await this.createAndSendOffer(id);
 		};
 
 		peerConnection.onicecandidate = (iceEvent) => {
 			if (iceEvent && iceEvent.candidate) {
 				this.socketConnection.emit('candidate', JSON.stringify({
+					id: id,
 					code: this.code,
 					name: this.name,
 					content: iceEvent.candidate
@@ -94,7 +91,7 @@ export class Connector {
 			};
 		};
 
-		this.peerConnection = peerConnection;
+		this.peerConnections[id] = peerConnection;
 	};
 
 	createSocketConnection = async () => {
@@ -108,7 +105,7 @@ export class Connector {
 					return;
 				}
 
-				const { id, code, name, time } = data;
+				const { id, code, name, type, time } = data;
 				const me = false;
 
 				if (code !== this.code) {
@@ -117,6 +114,12 @@ export class Connector {
 
 				if (!this.peers.some(x => x.id === id) && id) {
 					this.peers.push({ id, name, time, me });
+
+					await this.createPeerConnection(id);
+
+					if (type === 'offer') {
+						await this.createAndSendOffer(id);
+					}
 
 					if (this.onPeerChanged) {
 						this.onPeerChanged();
@@ -149,9 +152,14 @@ export class Connector {
 				if (this.onPeerChanged) {
 					this.onPeerChanged();
 				}
+
+				if (this.peerConnections[id]) {
+					this.peerConnections[id].close();
+					delete this.peerConnections[id];
+				}
 			});
 
-			socketConnection.on('join_response', (message) => {
+			socketConnection.on('join_response', async (message) => {
 				const data = JSON.parse(message);
 
 				if (!data) {
@@ -165,6 +173,8 @@ export class Connector {
 				this.id = id;
 				this.code = code;
 				this.name = name;
+
+				await this.createPeerConnection(this.id);
 
 				this.isConnected = true;
 				if (this.onConnected)
@@ -182,25 +192,32 @@ export class Connector {
 					return;
 				}
 
-				const { code, name, content } = data;
+				const { id, code, name, content } = data;
 
 				if (code !== this.code) {
 					return;
 				}
 
+				if (id === this.id) {
+					return;
+				}
+
+				if (!this.peerConnections[id]) {
+					await this.createPeerConnection(id);
+				}
+
+				await this.peerConnections[id].setRemoteDescription(content);
+
 				if (content.type === 'offer') {
-					await this.peerConnection.setRemoteDescription(content);
-					const answer = await this.peerConnection.createAnswer();
-					await this.peerConnection.setLocalDescription(answer);
+					const answer = await this.peerConnections[id].createAnswer();
+					await this.peerConnections[id].setLocalDescription(answer);
+
 					this.socketConnection.emit('sdp', JSON.stringify({
+						id: id,
 						code: this.code,
 						name: this.name,
 						content: answer
 					}));
-				} else if (content.type === 'answer') {
-					await this.peerConnection.setRemoteDescription(content);
-				} else {
-					console.log('Unsupported SDP type.');
 				}
 			});
 
@@ -211,14 +228,18 @@ export class Connector {
 					return;
 				}
 
-				const { code, name, content } = data;
+				const { id, code, name, content } = data;
 
 				if (code !== this.code) {
 					return;
 				}
 
+				if (id === this.id) {
+					return;
+				}
+
 				if (!!content) {
-					await this.peerConnection.addIceCandidate(content);
+					await this.peerConnections[id].addIceCandidate(content);
 				}
 			});
 
@@ -247,11 +268,16 @@ export class Connector {
 		return promise;
 	}
 
-	createAndSendOffer = async () => {
-		const offer = await this.peerConnection.createOffer();
-		await this.peerConnection.setLocalDescription(offer);
+	createAndSendOffer = async (id) => {
+		if (id === this.id) {
+			return;
+		}
+
+		const offer = await this.peerConnections[id].createOffer();
+		await this.peerConnections[id].setLocalDescription(offer);
 
 		this.socketConnection.emit('sdp', JSON.stringify({
+			id: id,
 			code: this.code,
 			name: this.name,
 			content: offer
@@ -269,31 +295,33 @@ export class Connector {
 		const owner = { id: this.id, name: this.name };
 		const time = new Date().getTime();
 
-		const channel = this.peerConnection.createDataChannel(name);
+		Object.keys(this.peerConnections).filter(x => x !== this.id).forEach(x => {
+			const channel = this.peerConnections[x].createDataChannel(name);
 
-		channel.binaryType = 'arraybuffer';
+			channel.binaryType = 'arraybuffer';
 
-		channel.onopen = () => {
-			const metadata = { id, owner, time };
-			const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
+			channel.onopen = () => {
+				const metadata = { id, owner, time };
+				const metadataBuffer = new TextEncoder("utf-8").encode(JSON.stringify(metadata));
 
-			for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-				channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-			}
-			channel.send(this.END_OF_FILE_MESSAGE);
+				for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+					channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+				}
+				channel.send(this.END_OF_FILE_MESSAGE);
 
-			for (let i = 0; i < content.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-				channel.send(content.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-			}
-			channel.send(this.END_OF_FILE_MESSAGE);
+				for (let i = 0; i < content.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+					channel.send(content.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+				}
+				channel.send(this.END_OF_FILE_MESSAGE);
+			};
 
-			this.files.push({ name, content, owner, time });
-		};
+			channel.onclose = () => {
+				if (this.onFileChanged)
+					this.onFileChanged();
+			};
+		});
 
-		channel.onclose = () => {
-			if (this.onFileChanged)
-				this.onFileChanged();
-		};
+		this.files.push({ name, content, owner, time });
 	};
 
 	downloadFile = (file) => {

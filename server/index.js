@@ -23,13 +23,13 @@ http.listen(LISTEN_PORT, () => {
 const peersByCode = {};
 
 io.on('connection', (socket) => {
-	const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+	const self = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 	socket.on('disconnect', () => {
-		const code = Object.keys(peersByCode).filter(x => peersByCode[x].some(y => y.id === id))[0];
-		const peer = peersByCode[code].filter(x => x.id === id)[0];
+		const code = Object.keys(peersByCode).filter(x => peersByCode[x].some(y => y.id === self))[0];
+		const peer = peersByCode[code].filter(x => x.id === self)[0];
 
-		peersByCode[code] = peersByCode[code].filter(x => x.id !== id);
+		peersByCode[code] = peersByCode[code].filter(x => x.id !== self);
 
 		peersByCode[code]
 			.forEach(x => x.socket.emit('peer_disconnected', JSON.stringify({
@@ -42,43 +42,34 @@ io.on('connection', (socket) => {
 	socket.on('sdp', message => {
 		const data = JSON.parse(message);
 
-		const { code, name, content } = data;
-		if (!peersByCode[code]) {
-			peersByCode[code] = [{ socket, id, name }];
-		} else if (!peersByCode[code].find(peer => peer.id === id)) {
-			peersByCode[code].push({ socket, id, name });
-		}
+		const { id, code, name, content } = data;
 
 		const reply = JSON.stringify({
+			id: self,
 			code: code,
 			name: name,
 			content: content
 		});
 
 		peersByCode[code]
-			.filter(peer => peer.id !== id)
+			.filter(peer => peer.id === id)
 			.forEach(peer => peer.socket.emit('sdp', reply));
 	});
 
 	socket.on('candidate', message => {
 		const data = JSON.parse(message);
 
-		const { code, name, content } = data;
-
-		if (!peersByCode[code]) {
-			peersByCode[code] = [{ socket, id, name }];
-		} else if (!peersByCode[code].find(peer => peer.id === id)) {
-			peersByCode[code].push({ socket, id, name });
-		}
+		const { id, code, name, content } = data;
 
 		const reply = JSON.stringify({
+			id: self,
 			code: code,
 			name: name,
 			content: content
 		});
 
 		peersByCode[code]
-			.filter(peer => peer.id !== id)
+			.filter(peer => peer.id === id)
 			.forEach(peer => peer.socket.emit('candidate', reply));
 	});
 
@@ -115,21 +106,22 @@ io.on('connection', (socket) => {
 			} while (peersByCode[code].some(x => x.name === name));
 		}
 
-		peersByCode[code].push({ socket, id, name, time });
+		peersByCode[code].push({ socket, id: self, name, time });
 
 		socket.emit('join_response', JSON.stringify({
-			id: id,
+			id: self,
 			code: code,
 			name: name
 		}));
 
 		peersByCode[code]
-			.filter(peer => peer.id !== id)
+			.filter(peer => peer.id !== self)
 			.forEach(peer => {
 				peer.socket.emit('peer_connected', JSON.stringify({
-					id: id,
+					id: self,
 					code: code,
 					name: name,
+					type: 'offer',
 					time: time
 				}));
 
@@ -137,6 +129,7 @@ io.on('connection', (socket) => {
 					id: peer.id,
 					code: code,
 					name: peer.name,
+					type: 'answer',
 					time: peer.time
 				}));
 			});
