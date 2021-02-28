@@ -5,4 +5,30 @@
     padding: 12.5px 20px;
     box-shadow: 0 5px 5px #252525;
     z-index: 1000;
+    color: #fff;
+}
+
+.Header .logo img {
+    height: 25px;
+    vertical-align: middle;
+    margin-top: -3px;
+    margin-right: 15px;
+}
+
+.Header .github {
+    display: table;
+    margin-right: 20px;
+    float: right;
+}
+
+.Header .github a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.Header .github a img {
+    height: 25px;
+    vertical-align: middle;
+    margin-top: -3px;
+    margin-right: 15px;
 }
