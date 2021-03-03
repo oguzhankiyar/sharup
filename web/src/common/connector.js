@@ -355,17 +355,24 @@ export class Connector {
 			};
 
 			channel.onclose = () => {
-				if (this.onFileChanged)
-					this.onFileChanged();
+				
 			};
 		});
-
+		
 		if (!this.files.some(x => x.id === id)) {
 			this.files.push(file);
+
+			if (this.onFileChanged) {
+				this.onFileChanged();
+			}
 		}
 	};
 
 	downloadFile = (file) => {
+		if (file.owner.id === this.id) {
+			return;
+		}
+
 		const blob = new Blob([file.content]);
 		const a = document.createElement('a');
 		const url = window.URL.createObjectURL(blob);
