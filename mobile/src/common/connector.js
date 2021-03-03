@@ -1,4 +1,5 @@
 import { RTCPeerConnection } from 'react-native-webrtc';
+import Config from '../config.json';
 
 export class Connector {
 
@@ -89,7 +90,7 @@ export class Connector {
 
     createSocketConnection = async () => {
         const promise = new Promise((resolve, reject) => {
-            const socketConnection = new WebSocket('ws://sharup.kiyar.io/api');
+            const socketConnection = new WebSocket(Config.host);
 
             socketConnection.onmessage = async (message) => {
                 const data = JSON.parse(message.data);
