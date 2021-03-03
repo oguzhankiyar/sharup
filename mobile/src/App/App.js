@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { Component } from 'react';
 import { StyleSheet, Text, TextInput, View, Button } from 'react-native';
 import { Connector } from '../common/connector';
-import QRView from './QRView/QRView';
+import { QRImage } from './QRImage/QRImage';
 
 export default class App extends Component {
 
@@ -48,7 +48,7 @@ export default class App extends Component {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>SharUp!</Text>
-        <QRView code={this.state.code}></QRView>
+        <QRImage code={this.state.code}></QRImage>
         <TextInput style={{ backgroundColor: '#f5f5f5', color: '#363636', width: 200, fontSize: 20, fontWeight: '900', padding: 7.5, paddingLeft: 10, paddingRight: 10, letterSpacing: 10, borderRadius: 5, marginBottom: 20 }}>{this.state.code}</TextInput>
         { this.state.isConnected === true ? <></> : <Button onPress={this.startConnection} title={'START CONNECTION'} style={{ width: 200 }}></Button> }
         {
