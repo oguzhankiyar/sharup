@@ -1,8 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { Component } from 'react';
 import { StyleSheet, Text, TextInput, View, Button } from 'react-native';
-import { Connector } from './common/connector';
-import QRView from './QRView';
+import { Connector } from '../common/connector';
+import QRView from './QRView/QRView';
 
 export default class App extends Component {
 

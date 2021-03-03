@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import QRCode from './common/qrcode';
+import QRCode from '../../common/qrcode';
 
 export default class App extends Component {
 
