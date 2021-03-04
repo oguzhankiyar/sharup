@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { QRScanner } from '../QRScanner/QRScanner';
 
 export class Home extends Component {
     state = { code: '', showJoin: false };
@@ -24,12 +25,15 @@ export class Home extends Component {
                 {
                     this.state.showJoin
                         ?
-                        <View style={styles.codeContainer}>
-                            <TextInput autoCorrect={false} spellCheck={false} style={styles.codeInput} placeholder="C O D E" value={this.state.code} onChange={this.onCodeChange} onKeyPress={(event) => { if (event.key === 'Enter' && this.state.code && this.state.code.length === 8) this.props.onJoin(this.state.code); }} autoComplete="none" maxLength={8} />
-                            <View>
-                                <TouchableOpacity disabled={!this.state.code || this.state.code.length !== 8} onPress={() => this.props.onJoin(this.state.code)} style={{ ...styles.button, marginRight: 0 }}>
-                                    <Text style={styles.buttonText}>Join</Text>
-                                </TouchableOpacity>
+                        <View style={styles.qrScannerContainer}>
+                            <QRScanner onSuccess={(code) => this.setState({ code })} style={styles.qrScanner} />
+                            <View style={styles.codeContainer}>
+                                <TextInput autoCorrect={false} spellCheck={false} style={styles.codeInput} placeholder="C O D E" value={this.state.code} onChange={this.onCodeChange} onKeyPress={(event) => { if (event.key === 'Enter' && this.state.code && this.state.code.length === 8) this.props.onJoin(this.state.code); }} autoComplete="none" maxLength={8} />
+                                <View>
+                                    <TouchableOpacity disabled={!this.state.code || this.state.code.length !== 8} onPress={() => this.props.onJoin(this.state.code)} style={{ ...styles.button, marginRight: 0 }}>
+                                        <Text style={styles.buttonText}>Join</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
                         :
@@ -55,17 +59,18 @@ export class Home extends Component {
 }
 
 const styles = StyleSheet.create({
-	home: {
+    home: {
+        flex: 1,
         marginTop: 60
     },
     titleContainer: {
         marginBottom: 25
-	},
+    },
     title: {
         fontSize: 50,
         fontFamily: 'Montserrat-Regular',
         color: '#d3a722'
-	},
+    },
     description: {
         fontSize: 25,
         fontFamily: 'Montserrat-Regular',
@@ -97,6 +102,14 @@ const styles = StyleSheet.create({
         fontFamily: 'Montserrat-Regular',
         textTransform: 'uppercase',
         fontWeight: 'bold'
+    },
+    qrScannerContainer: {
+        flex: 1,
+        marginTop: -50
+    },
+    qrScanner: {
+        borderRadius: 10,
+        marginBottom: 25
     },
     codeContainer: {
         flexDirection: 'row'
