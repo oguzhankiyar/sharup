@@ -29,6 +29,7 @@ const styles = StyleSheet.create({
         opacity: .25,
         textAlign: 'center',
         marginTop: 40,
-        fontSize: 15
+        fontSize: 15,
+        fontFamily: 'Montserrat-Regular'
     }
 });

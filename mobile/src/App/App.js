@@ -188,10 +188,12 @@ const styles = StyleSheet.create({
 	label: {
 		color: '#f5f5f5',
 		fontSize: 15,
+        fontFamily: 'Montserrat-Regular',
 		marginBottom: 4
 	},
 	code: {
 		fontSize: 17.5,
+        fontFamily: 'Montserrat-Regular',
 		backgroundColor: '#d5d5d5',
 		color: '#363636',
 		borderRadius: 5,
@@ -199,10 +201,11 @@ const styles = StyleSheet.create({
 		paddingBottom: 4,
 		marginBottom: 5,
 		textAlign: 'center',
-        letterSpacing: 10
+        letterSpacing: 5
 	},
 	name: {
 		fontSize: 17.5,
+        fontFamily: 'Montserrat-Regular',
 		backgroundColor: '#d5d5d5',
 		color: '#363636',
 		borderRadius: 5,
@@ -236,6 +239,7 @@ const styles = StyleSheet.create({
 	tabText: {
 		flex: 1,
 		fontSize: 20,
+        fontFamily: 'Montserrat-Regular',
 		color: '#f5f5f5',
 		textAlign: 'center'
 	},

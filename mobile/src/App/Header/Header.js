@@ -31,6 +31,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 25,
+        fontFamily: 'Montserrat-Regular',
         color: '#f5f5f5',
         flex: 1
     },

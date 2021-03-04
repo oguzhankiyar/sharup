@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     },
     addText: {
         fontSize: 17.5,
+        fontFamily: 'Montserrat-Regular',
         fontWeight: 'bold',
         textAlign: 'center',
         textTransform: 'uppercase',

@@ -63,10 +63,12 @@ const styles = StyleSheet.create({
 	},
     title: {
         fontSize: 50,
+        fontFamily: 'Montserrat-Regular',
         color: '#d3a722'
 	},
     description: {
         fontSize: 25,
+        fontFamily: 'Montserrat-Regular',
         color: '#ccc',
         marginBottom: 75
     },
@@ -75,7 +77,8 @@ const styles = StyleSheet.create({
     },
     actionText: {
         color: '#f5f5f5',
-        fontSize: 25
+        fontSize: 25,
+        fontFamily: 'Montserrat-Regular'
     },
     button: {
         backgroundColor: '#9b7b1b',
@@ -91,6 +94,7 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#fff',
         fontSize: 20,
+        fontFamily: 'Montserrat-Regular',
         textTransform: 'uppercase',
         fontWeight: 'bold'
     },

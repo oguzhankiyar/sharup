@@ -55,25 +55,30 @@ const styles = StyleSheet.create({
         borderRadius: 2.5,
         paddingVertical: 2,
         paddingHorizontal: 5,
-        opacity: .75
+        opacity: .75,
+        fontFamily: 'Montserrat-Regular'
     },
     name: {
 		color: '#f5f5f5',
-        fontSize: 17.5
+        fontSize: 17.5,
+        fontFamily: 'Montserrat-Regular'
     },
     info: {
 		color: '#888',
-        fontSize: 15
+        fontSize: 15,
+        fontFamily: 'Montserrat-Regular'
     },
     time: {
 		color: '#c5c5c5',
         marginLeft: 5,
         marginRight: 5,
-        fontSize: 15
+        fontSize: 15,
+        fontFamily: 'Montserrat-Regular'
     },
     owner: {
 		color: '#c5c5c5',
         marginLeft: 5,
-        fontSize: 15
+        fontSize: 15,
+        fontFamily: 'Montserrat-Regular'
     }
 });
