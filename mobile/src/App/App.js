@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, BackHandler } from 'react-native';
 import { Connector } from '../common/connector';
 import { Header } from './Header/Header';
 import { Home } from './Home/Home';
@@ -13,12 +13,25 @@ export default class App extends Component {
 	state = { isConnected: false, code: '', name: '', isPeersShowing: true, isFilesShowing: false, peers: [], files: [] };
 
 	connector = null;
+	backHandler = null;
 
 	componentDidMount = () => {
+		this.backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+			if (!!this.state.isConnected) {
+				this.connector.endConnection();
 
+				return true;
+			}
+
+			return false;
+		});
 	};
 
-	componentWillUnmount = () => {		
+	componentWillUnmount = () => {
+		if (this.backHandler) {
+			this.backHandler.remove();
+		}
+		
 		if (this.connector) {
 			this.connector.endConnection();
 		}
