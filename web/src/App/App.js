@@ -107,6 +107,12 @@ export default class App extends Component {
         }
     };
 
+    componentWillUnmount = () => {
+		if (this.connector) {
+			this.connector.endConnection();
+		}
+    };
+
     render = () => {
         if (!this.state.isConnected) {
             return (

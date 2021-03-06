@@ -31,6 +31,40 @@ export class Connector {
 		}
 	};
 
+	endConnection = () => {
+		this.peers.forEach(x => {
+			const peerConnection = this.peerConnections[x.id];
+			if (peerConnection) {
+				peerConnection.close();
+			}
+			delete this.peerConnections[x.id];
+		});
+		this.peerConnections = {};
+
+		this.peers = [];
+		if (this.onPeerChanged) {
+			this.onPeerChanged();
+		}
+
+		this.files = [];
+		if (this.onFileChanged) {
+			this.onFileChanged();
+		}
+
+		if (this.socketConnection) {
+			this.socketConnection.close();
+		}
+		this.socketConnection = null;
+
+		this.id = null;
+		this.name = null;
+		
+		this.isConnected = false;
+		if (this.onConnected) {
+			this.onConnected();
+		}
+	};
+
 	createPeerConnection = async (id) => {
 		const peerConnection = new RTCPeerConnection({
 			iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],

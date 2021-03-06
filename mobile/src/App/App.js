@@ -14,8 +14,15 @@ export default class App extends Component {
 
 	connector = null;
 
-	componentDidMount() {
-	}
+	componentDidMount = () => {
+
+	};
+
+	componentWillUnmount = () => {		
+		if (this.connector) {
+			this.connector.endConnection();
+		}
+	};
 
 	startConnection = async (code, name) => {
 		this.connector = new Connector();
@@ -51,48 +58,48 @@ export default class App extends Component {
 		await this.connector.startConnection(code, name);
 	};
 
-    shareNewFile = (file) => {
-        if (!this.connector) {
-            return;
-        }
+	shareNewFile = (file) => {
+		if (!this.connector) {
+			return;
+		}
 
-        const { name, content } = file;
+		const { name, content } = file;
 
-        this.connector.shareNewFile(name, content);
-    };
+		this.connector.shareNewFile(name, content);
+	};
 
-    onCodeChange = (event) => {
-        const { value } = event.target;
-        this.setState({ ...this.state, code: value.toUpperCase() });
-    };
+	onCodeChange = (event) => {
+		const { value } = event.target;
+		this.setState({ ...this.state, code: value.toUpperCase() });
+	};
 
-    onNameChange = (event) => {
-        const { value } = event.target;
-        this.setState({ ...this.state, name: value.toUpperCase() });
-    };
+	onNameChange = (event) => {
+		const { value } = event.target;
+		this.setState({ ...this.state, name: value.toUpperCase() });
+	};
 
-    onFileDownload = (file) => {
-        this.connector.downloadFile(file);
-    }
+	onFileDownload = (file) => {
+		this.connector.downloadFile(file);
+	}
 
-    showPeers() {
-        this.setState({ ...this.state, isPeersShowing: true, isFilesShowing: false });
-    }
+	showPeers() {
+		this.setState({ ...this.state, isPeersShowing: true, isFilesShowing: false });
+	}
 
-    showFiles() {
-        this.setState({ ...this.state, isPeersShowing: false, isFilesShowing: true });
-    }
+	showFiles() {
+		this.setState({ ...this.state, isPeersShowing: false, isFilesShowing: true });
+	}
 
-    onCreate = () => {
-        this.startConnection('', '');
-    };
+	onCreate = () => {
+		this.startConnection('', '');
+	};
 
-    onJoin = (code) => {
-        this.startConnection(code, '');
-    };
+	onJoin = (code) => {
+		this.startConnection(code, '');
+	};
 
 	render = () => {
-        if (!this.state.isConnected) {
+		if (!this.state.isConnected) {
 			return (
 				<View style={styles.app}>
 					<Header />
@@ -111,48 +118,48 @@ export default class App extends Component {
 				<View style={styles.container}>
 					<View style={styles.left}>
 						<View style={styles.qr}>
-                            <QRImage code={this.state.code} />
-                        </View>
+							<QRImage code={this.state.code} />
+						</View>
 						<View style={styles.form}>
 							<Text style={styles.label}>Code</Text>
 							<TextInput style={styles.code} value={this.state.code} disabled />
 							<Text style={styles.label}>Name</Text>
 							<TextInput style={styles.name} value={this.state.name} disabled />
 							<FileButton onSelect={(file => this.shareNewFile(file))} />
-                        </View>
+						</View>
 					</View>
 					<View style={styles.right}>
-                        <View style={styles.tabs}>
-                            <TouchableOpacity
-                                style={this.state.isPeersShowing ? styles.activeTab : styles.tab}
-                                onPress={() => this.showPeers()}>
+						<View style={styles.tabs}>
+							<TouchableOpacity
+								style={this.state.isPeersShowing ? styles.activeTab : styles.tab}
+								onPress={() => this.showPeers()}>
 								<View style={styles.tabContent}>
-                               		<Text style={styles.tabText}>Peers</Text>
+									<Text style={styles.tabText}>Peers</Text>
 									{
 										this.state.peers.length > 0 ? <Text style={styles.tabLabel}>{this.state.peers.length}</Text> : <></>
 									}
 								</View>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={this.state.isFilesShowing ? styles.activeTab : styles.tab}
-                                onPress={() => this.showFiles()}>
+							</TouchableOpacity>
+							<TouchableOpacity
+								style={this.state.isFilesShowing ? styles.activeTab : styles.tab}
+								onPress={() => this.showFiles()}>
 								<View style={styles.tabContent}>
 									<Text style={styles.tabText}>Files</Text>
 									{
 										this.state.files.length > 0 ? <Text style={styles.tabLabel}>{this.state.files.length}</Text> : <></>
 									}
 								</View>
-                            </TouchableOpacity>
-                        </View>
-                        <View style={styles.content}>
-                            <PeerList
-                                items={this.state.peers}
-                                show={this.state.isPeersShowing} />
-                            <FileList
-                                items={this.state.files}
-                                show={this.state.isFilesShowing}
-                                onDownload={file => this.onFileDownload(file)} />
-                        </View>
+							</TouchableOpacity>
+						</View>
+						<View style={styles.content}>
+							<PeerList
+								items={this.state.peers}
+								show={this.state.isPeersShowing} />
+							<FileList
+								items={this.state.files}
+								show={this.state.isFilesShowing}
+								onDownload={file => this.onFileDownload(file)} />
+						</View>
 					</View>
 				</View>
 			</View>
@@ -188,12 +195,12 @@ const styles = StyleSheet.create({
 	label: {
 		color: '#f5f5f5',
 		fontSize: 15,
-        fontFamily: 'Montserrat-Regular',
+		fontFamily: 'Montserrat-Regular',
 		marginBottom: 4
 	},
 	code: {
 		fontSize: 17.5,
-        fontFamily: 'Montserrat-Regular',
+		fontFamily: 'Montserrat-Regular',
 		backgroundColor: '#d5d5d5',
 		color: '#363636',
 		borderRadius: 5,
@@ -201,18 +208,18 @@ const styles = StyleSheet.create({
 		paddingBottom: 4,
 		marginBottom: 5,
 		textAlign: 'center',
-        letterSpacing: 5
+		letterSpacing: 5
 	},
 	name: {
 		fontSize: 17.5,
-        fontFamily: 'Montserrat-Regular',
+		fontFamily: 'Montserrat-Regular',
 		backgroundColor: '#d5d5d5',
 		color: '#363636',
 		borderRadius: 5,
 		paddingTop: 4,
 		paddingBottom: 4,
 		textAlign: 'center',
-        letterSpacing: 5
+		letterSpacing: 5
 	},
 	tabs: {
 		flexDirection: 'row',
@@ -239,7 +246,7 @@ const styles = StyleSheet.create({
 	tabText: {
 		flex: 1,
 		fontSize: 20,
-        fontFamily: 'Montserrat-Regular',
+		fontFamily: 'Montserrat-Regular',
 		color: '#f5f5f5',
 		textAlign: 'center'
 	},
@@ -256,6 +263,6 @@ const styles = StyleSheet.create({
 		marginRight: 4
 	},
 	content: {
-		
+
 	}
 });
