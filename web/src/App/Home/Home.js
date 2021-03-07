@@ -18,7 +18,11 @@ export class Home extends Component {
         return (
             <div className="Home">
                 <div className="title">Sharup everything!</div>
-                <div className="description">no cable, no login, no storage</div>
+                <div className="description">
+                    no cable<br />
+                    no login<br />
+                    no storage
+                </div>
                 {
                     this.state.showJoin
                         ?

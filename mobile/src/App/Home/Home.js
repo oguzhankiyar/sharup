@@ -21,7 +21,11 @@ export class Home extends Component {
                     <Text style={styles.title}>Sharup</Text>
                     <Text style={styles.title}>everything!</Text>
                 </View>
-                <Text style={styles.description}>no cable, no login, no storage</Text>
+                <View style={styles.descriptionContainer}>
+                    <Text style={styles.description}>no cable</Text>
+                    <Text style={styles.description}>no login</Text>
+                    <Text style={styles.description}>no storage</Text>
+                </View>
                 {
                     this.state.showJoin
                         ?
@@ -64,18 +68,20 @@ const styles = StyleSheet.create({
         marginTop: 60
     },
     titleContainer: {
-        marginBottom: 25
+        marginBottom: 20
     },
     title: {
         fontSize: 50,
         fontFamily: 'Montserrat-Regular',
         color: '#d3a722'
     },
+    descriptionContainer: {
+        marginBottom: 75
+    },
     description: {
         fontSize: 25,
         fontFamily: 'Montserrat-Regular',
-        color: '#ccc',
-        marginBottom: 75
+        color: '#ccc'
     },
     action: {
         flexDirection: 'row'
