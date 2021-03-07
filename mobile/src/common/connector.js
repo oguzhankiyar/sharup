@@ -154,7 +154,9 @@ export class Connector {
 			};
 
 			channel.onclose = () => {
-				this.peerConnections[id].channel = null;
+				if (this.peerConnections[id]) {
+					this.peerConnections[id].channel = null;
+				}
 			};
 
 			channel.onerror = () => {
