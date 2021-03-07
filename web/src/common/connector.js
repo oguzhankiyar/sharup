@@ -85,21 +85,20 @@ export class Connector {
 			}
 		};
 
-		peerConnection.ondatachannel = (event) => {
-			const { channel } = event;
+		peerConnection.ondatachannel = (channelEvent) => {
+			const { channel } = channelEvent;
 			channel.binaryType = 'arraybuffer';
 
 			let metadata = null;
-			const receivedBuffers = [];
-			channel.onmessage = async (event) => {
-				const { data } = event;
+			let receivedBuffers = [];
+			channel.onmessage = async (messageEvent) => {
+				const { data } = messageEvent;
 				try {
 					if (data !== this.END_OF_FILE_MESSAGE) {
 						receivedBuffers.push(data);
 					} else {
 						if (!!metadata) {
-							const id = channel.label;
-							const { name, owner, time } = metadata;
+							const { id, name, owner, time } = metadata;
 							const content = receivedBuffers.reduce((acc, content) => {
 								const tmp = new Uint8Array(acc.byteLength + content.byteLength);
 								tmp.set(new Uint8Array(acc), 0);
@@ -115,7 +114,8 @@ export class Connector {
 								}
 							}
 
-							channel.close();
+							metadata = null;
+							receivedBuffers = [];
 						} else {
 							const content = receivedBuffers.reduce((acc, content) => {
 								const tmp = new Uint8Array(acc.byteLength + content.byteLength);
@@ -136,6 +136,30 @@ export class Connector {
 		};
 
 		this.peerConnections[id] = peerConnection;
+	};
+
+	createPeerDataChannel = (id) => {
+		const promise = new Promise((resolve, reject) => {
+			const channel = this.peerConnections[id].createDataChannel(id);
+
+			channel.binaryType = 'arraybuffer';
+
+			channel.onopen = () => {
+				this.peerConnections[id].channel = channel;
+
+				resolve(channel);
+			};
+
+			channel.onclose = () => {
+				this.peerConnections[id].channel = null;
+			};
+
+			channel.onerror = () => {
+				reject();
+			};
+		});
+
+		return promise;
 	};
 
 	createSocketConnection = async () => {
@@ -377,29 +401,24 @@ export class Connector {
 			receivers = Object.keys(this.peerConnections).filter(x => x !== this.id);
 		}
 
-		receivers.forEach(x => {
-			const channel = this.peerConnections[x].createDataChannel(id);
+		receivers.forEach(async x => {
+			let channel = this.peerConnections[x].channel;
+			if (!channel) {
+				channel = await this.createPeerDataChannel(x);
+			}
 
-			channel.binaryType = 'arraybuffer';
+			const metadata = { id, name, owner, time };
+			const metadataBuffer = new TextEncoder('utf-8').encode(JSON.stringify(metadata));
 
-			channel.onopen = () => {
-				const metadata = { id, name, owner, time };
-				const metadataBuffer = new TextEncoder('utf-8').encode(JSON.stringify(metadata));
+			for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+				channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+			}
+			channel.send(this.END_OF_FILE_MESSAGE);
 
-				for (let i = 0; i < metadataBuffer.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-					channel.send(metadataBuffer.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-				}
-				channel.send(this.END_OF_FILE_MESSAGE);
-
-				for (let i = 0; i < content.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
-					channel.send(content.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
-				}
-				channel.send(this.END_OF_FILE_MESSAGE);
-			};
-
-			channel.onclose = () => {
-
-			};
+			for (let i = 0; i < content.byteLength; i += this.MAXIMUM_MESSAGE_SIZE) {
+				channel.send(content.slice(i, i + this.MAXIMUM_MESSAGE_SIZE));
+			}
+			channel.send(this.END_OF_FILE_MESSAGE);
 		});
 
 		if (!this.files.some(x => x.id === id)) {
