@@ -58,7 +58,7 @@ export class Connector {
 
 		this.id = null;
 		this.name = null;
-		
+
 		this.isConnected = false;
 		if (this.onConnected) {
 			this.onConnected();
@@ -107,10 +107,14 @@ export class Connector {
 								return tmp;
 							}, new Uint8Array());
 
-							this.files.push({ id, name, content, owner, time });
-							if (this.onFileChanged)
-								this.onFileChanged();
-								
+							if (!this.files.some(x => x.id === id)) {
+								this.files.push({ id, name, content, owner, time });
+
+								if (this.onFileChanged) {
+									this.onFileChanged();
+								}
+							}
+
 							channel.close();
 						} else {
 							const content = receivedBuffers.reduce((acc, content) => {
@@ -168,7 +172,7 @@ export class Connector {
 					this.files
 						.filter(x => x.owner.id === this.id || (x.deputy && x.deputy.id === this.id))
 						.forEach(x => {
-							this.shareFile(x, [ id ]);
+							this.shareFile(x, [id]);
 						});
 				}
 			});
@@ -185,7 +189,7 @@ export class Connector {
 				if (code !== this.code) {
 					return;
 				}
-				
+
 				this.files
 					.filter(x => x.owner.id === id)
 					.forEach(x => {
@@ -218,7 +222,7 @@ export class Connector {
 				if (!status || status === false) {
 					if (this.onFailed)
 						this.onFailed(error);
-						
+
 					socketConnection.close();
 					return;
 				}
@@ -230,12 +234,17 @@ export class Connector {
 				await this.createPeerConnection(this.id);
 
 				this.isConnected = true;
-				if (this.onConnected)
+				if (this.onConnected) {
 					this.onConnected();
+				}
 
-				this.peers.push({ id, name, time, me });
-				if (this.onPeerChanged)
-					this.onPeerChanged();
+				if (!this.peers.some(x => x.id === id) && id) {
+					this.peers.push({ id, name, time, me });
+
+					if (this.onPeerChanged) {
+						this.onPeerChanged();
+					}
+				}
 			});
 
 			socketConnection.on('sdp', async (message) => {
@@ -389,10 +398,10 @@ export class Connector {
 			};
 
 			channel.onclose = () => {
-				
+
 			};
 		});
-		
+
 		if (!this.files.some(x => x.id === id)) {
 			this.files.push(file);
 
