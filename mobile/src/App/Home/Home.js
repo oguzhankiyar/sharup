@@ -1,9 +1,23 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, Keyboard } from 'react-native';
 import { QRScanner } from '../QRScanner/QRScanner';
 
 export class Home extends Component {
-    state = { code: '', showJoin: false };
+    state = { code: '', showJoin: false, isKeyboardOpen: false };
+
+    componentDidMount = () => {
+        this.keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+            this.setState({ ...this.state, isKeyboardOpen: true });
+        });
+        this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+            this.setState({ ...this.state, isKeyboardOpen: false });
+        });
+    };
+
+    componentWillUnmount = () => {
+        this.keyboardDidShowListener.remove();
+        this.keyboardDidHideListener.remove();
+    };
 
     showJoin = () => {
         this.setState({ ...this.state, showJoin: true });
@@ -30,7 +44,11 @@ export class Home extends Component {
                     this.state.showJoin
                         ?
                         <View style={styles.qrScannerContainer}>
-                            <QRScanner onSuccess={(code) => this.setState({ code })} style={styles.qrScanner} />
+                            {
+                                this.state.isKeyboardOpen === false
+                                    ? <QRScanner onSuccess={(code) => this.setState({ code })} style={styles.qrScanner} />
+                                    : <></>
+                            }
                             <View style={styles.codeContainer}>
                                 <TextInput autoCorrect={false} spellCheck={false} style={styles.codeInput} placeholder="C O D E" value={this.state.code} onChange={this.onCodeChange} onKeyPress={(event) => { if (event.key === 'Enter' && this.state.code && this.state.code.length === 8) this.props.onJoin(this.state.code); }} autoComplete="none" maxLength={8} />
                                 <View>
